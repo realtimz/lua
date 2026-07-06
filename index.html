@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ground Up — Roblox Scripting, from zero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --granite:#0F1116;
+    --granite-2:#161922;
+    --surface:#1B1F29;
+    --surface-2:#212633;
+    --line:#2A3040;
+    --line-soft:#222838;
+    --chalk:#ECE9DF;
+    --muted:#9AA0AC;
+    --muted-2:#646B7A;
+    --hold:#FF5C42;
+    --hold-soft:rgba(255,92,66,.12);
+    --cy:#5FD3C6;
+    --key:#FF8A6B;
+    --str:#C7B9FF;
+    --num:#F2C879;
+    --com:#5E6573;
+    --ok:#7FD18B;
+    --warn:#F2C879;
+    --sidebar-w:288px;
+    --fd:'Space Grotesk',sans-serif;
+    --fb:'Inter',sans-serif;
+    --fm:'JetBrains Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--granite);color:var(--chalk);font-family:var(--fb);line-height:1.68;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--hold);color:#fff}
+
+  /* progress bar */
+  #top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--hold);z-index:100;transition:width .1s linear;box-shadow:0 0 10px rgba(255,92,66,.6)}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;overflow-y:auto;
+    background:var(--granite-2);border-right:1px solid var(--line);padding:26px 0 60px;z-index:50;
+  }
+  .sidebar::-webkit-scrollbar{width:8px}
+  .sidebar::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+  .brand{padding:0 24px 22px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .brand .logo{font-family:var(--fm);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--hold)}
+  .brand h1{font-family:var(--fd);font-weight:700;font-size:21px;line-height:1.05;margin-top:8px;letter-spacing:-.01em}
+  .brand p{font-size:12px;color:var(--muted-2);margin-top:6px;font-family:var(--fm)}
+
+  .nav-part{margin:4px 0}
+  .nav-part > button{
+    width:100%;text-align:left;background:none;border:none;cursor:pointer;color:var(--muted);
+    font-family:var(--fm);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    padding:11px 24px;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:color .2s;
+  }
+  .nav-part > button:hover{color:var(--chalk)}
+  .nav-part > button .pn{color:var(--hold);font-weight:700;margin-right:7px}
+  .nav-part > button .chev{transition:transform .25s;font-size:9px;color:var(--muted-2)}
+  .nav-part.open > button .chev{transform:rotate(90deg)}
+  .nav-links{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .nav-part.open .nav-links{max-height:900px}
+  .nav-links a{
+    display:block;color:var(--muted);text-decoration:none;font-size:13.5px;
+    padding:7px 24px 7px 40px;border-left:2px solid transparent;transition:all .15s;line-height:1.35;
+  }
+  .nav-links a:hover{color:var(--chalk);background:var(--surface)}
+  .nav-links a.active{color:var(--hold);border-left-color:var(--hold);background:var(--hold-soft);font-weight:500}
+  .nav-links a.done::after{content:" ✓";color:var(--ok);font-size:11px}
+
+  /* ---------- TOPBAR (mobile) ---------- */
+  .topbar{
+    display:none;position:fixed;top:0;left:0;right:0;height:56px;z-index:60;
+    background:var(--granite-2);border-bottom:1px solid var(--line);
+    align-items:center;padding:0 16px;gap:14px;
+  }
+  .topbar button{background:none;border:none;color:var(--chalk);cursor:pointer;font-size:22px;line-height:1;display:flex;align-items:center}
+  .topbar .tb-title{font-family:var(--fd);font-weight:600;font-size:15px}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:45}
+
+  /* ---------- CONTENT ---------- */
+  .content{margin-left:var(--sidebar-w);max-width:none;padding:0}
+  .inner{max-width:740px;margin:0 auto;padding:64px 40px 140px}
+
+  section{scroll-margin-top:30px;padding-top:18px}
+  .part-head{margin:64px 0 8px;padding-top:30px;border-top:1px solid var(--line)}
+  section:first-of-type .part-head, .intro + .part-head{border-top:none}
+  .part-head .pk{font-family:var(--fm);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--hold);margin-bottom:10px}
+  .part-head h2{font-family:var(--fd);font-weight:700;font-size:clamp(28px,5vw,40px);line-height:1.04;letter-spacing:-.02em}
+  .part-head .pintro{color:var(--muted);font-size:16px;margin-top:14px;max-width:60ch}
+
+  .lesson{margin-top:30px}
+  .lesson .eg{font-family:var(--fm);font-size:11.5px;letter-spacing:.1em;color:var(--muted-2);margin-bottom:7px}
+  .lesson h3{font-family:var(--fd);font-weight:600;font-size:clamp(20px,3.5vw,25px);line-height:1.15;letter-spacing:-.01em;margin-bottom:14px}
+  .lesson p{margin-bottom:15px;color:#D6D3CA;font-size:15.5px}
+  .lesson p b{color:var(--chalk);font-weight:600}
+  .lesson code.ic{font-family:var(--fm);font-size:.86em;background:var(--surface-2);color:var(--cy);padding:1px 6px;border-radius:4px;border:1px solid var(--line-soft)}
+  .lesson ul{margin:0 0 16px 0;padding-left:0;list-style:none}
+  .lesson ul li{position:relative;padding:4px 0 4px 22px;color:#D6D3CA;font-size:15px}
+  .lesson ul li::before{content:"–";position:absolute;left:4px;color:var(--hold)}
+
+  /* code */
+  .code{position:relative;margin:6px 0 18px}
+  .code pre{background:var(--granite-2);border:1px solid var(--line);border-radius:10px;padding:16px 16px;overflow-x:auto;font-family:var(--fm);font-size:13px;line-height:1.7}
+  .code pre::-webkit-scrollbar{height:8px}
+  .code pre::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+  .code .copy{
+    position:absolute;top:9px;right:9px;background:var(--surface-2);border:1px solid var(--line);
+    color:var(--muted);font-family:var(--fm);font-size:10.5px;letter-spacing:.06em;padding:5px 9px;border-radius:6px;
+    cursor:pointer;text-transform:uppercase;transition:all .15s;opacity:0;
+  }
+  .code:hover .copy{opacity:1}
+  .code .copy:hover{color:var(--chalk);border-color:var(--hold)}
+  .code .copy.copied{color:var(--ok);border-color:var(--ok)}
+  .tk-key{color:var(--key)}
+  .tk-bi{color:var(--cy)}
+  .tk-fn{color:var(--cy)}
+  .tk-str{color:var(--str)}
+  .tk-num{color:var(--num)}
+  .tk-com{color:var(--com);font-style:italic}
+
+  /* callouts */
+  .callout{border-radius:10px;padding:15px 17px 15px 16px;margin:6px 0 20px;border:1px solid var(--line);background:var(--surface);font-size:14.5px}
+  .callout .ct{font-family:var(--fm);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:7px}
+  .callout p{margin:0;color:#D6D3CA;font-size:14.5px}
+  .callout p + p{margin-top:8px}
+  .callout code.ic{font-size:.85em}
+  .c-analogy{border-left:3px solid var(--cy)}
+  .c-analogy .ct{color:var(--cy)}
+  .c-key{border-left:3px solid var(--hold);background:var(--hold-soft)}
+  .c-key .ct{color:var(--hold)}
+  .c-warn{border-left:3px solid var(--warn)}
+  .c-warn .ct{color:var(--warn)}
+  .c-do{border-left:3px solid var(--ok)}
+  .c-do .ct{color:var(--ok)}
+  .c-try{border-left:3px solid var(--hold);background:linear-gradient(120deg,var(--hold-soft),transparent)}
+  .c-try .ct{color:var(--hold)}
+
+  /* check yourself */
+  .check{margin:6px 0 22px;border:1px dashed var(--line);border-radius:10px;overflow:hidden}
+  .check summary{cursor:pointer;list-style:none;padding:13px 16px;font-family:var(--fm);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--surface);transition:color .15s}
+  .check summary:hover{color:var(--chalk)}
+  .check summary::-webkit-details-marker{display:none}
+  .check summary::before{content:"?  ";color:var(--hold);font-weight:700}
+  .check[open] summary{color:var(--hold);border-bottom:1px dashed var(--line)}
+  .check .ans{padding:14px 16px;font-size:14.5px;color:#D6D3CA}
+  .check .ans b{color:var(--chalk)}
+
+  /* done button */
+  .done-row{margin:26px 0 4px;display:flex;align-items:center;gap:12px}
+  .done-btn{
+    background:var(--surface-2);border:1px solid var(--line);color:var(--muted);cursor:pointer;
+    font-family:var(--fm);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;padding:9px 15px;border-radius:8px;transition:all .15s;
+  }
+  .done-btn:hover{color:var(--chalk);border-color:var(--hold)}
+  .done-btn.is-done{background:var(--hold-soft);border-color:var(--hold);color:var(--hold)}
+
+  /* intro hero */
+  .intro{padding:18px 0 8px}
+  .intro .eyebrow{font-family:var(--fm);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--hold);margin-bottom:18px}
+  .intro h2{font-family:var(--fd);font-weight:700;font-size:clamp(34px,7vw,52px);line-height:1.0;letter-spacing:-.02em;margin-bottom:20px}
+  .intro .lede{font-size:17px;color:var(--muted);max-width:58ch}
+  .intro .lede b{color:var(--chalk);font-weight:600}
+  .howto{margin-top:30px;display:grid;gap:12px}
+  .howto .row{display:flex;gap:13px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .howto .row .ic2{font-family:var(--fm);color:var(--hold);font-weight:700;flex-shrink:0;font-size:14px}
+  .howto .row p{font-size:14.5px;color:#D6D3CA;margin:0}
+  .howto .row p b{color:var(--chalk)}
+
+  footer{margin-left:var(--sidebar-w);padding:40px;border-top:1px solid var(--line);color:var(--muted-2);font-family:var(--fm);font-size:12px;letter-spacing:.03em;text-align:center}
+
+  @media (max-width:900px){
+    .sidebar{transform:translateX(-100%);transition:transform .28s ease;width:300px}
+    .sidebar.open{transform:translateX(0)}
+    .topbar{display:flex}
+    .scrim.show{display:block}
+    .content{margin-left:0}
+    .inner{padding:80px 22px 120px}
+    footer{margin-left:0}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div id="top-progress"></div>
+
+<div class="topbar">
+  <button id="menuBtn" aria-label="Open menu">☰</button>
+  <span class="tb-title">Ground Up</span>
+</div>
+<div class="scrim" id="scrim"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="logo">Ground Up</div>
+    <h1>Roblox Scripting,<br>from zero</h1>
+    <p>built for Timz · 8 parts</p>
+  </div>
+  <div id="nav"></div>
+</nav>
+
+<div class="content">
+<div class="inner" id="inner">
+
+  <section id="start" class="intro">
+    <div class="eyebrow">Read this first · 60 seconds</div>
+    <h2>You're not starting over.<br>You're starting clean.</h2>
+    <p class="lede">This teaches every piece of Roblox scripting from the ground up — no assumed knowledge. By the end you'll understand <b>why</b> things work, not just copy them. That "why" is the whole point: it's the difference between forgetting again and keeping it for good.</p>
+
+    <div class="howto">
+      <div class="row"><span class="ic2">01</span><p><b>Open Roblox Studio next to this page.</b> Every lesson has a "Try it" box. If you only read, you'll forget by Tuesday. If you type it, it sticks.</p></div>
+      <div class="row"><span class="ic2">02</span><p><b>Go in order.</b> Each part is built on the one before. Skipping ahead is how scripting starts feeling like magic instead of logic.</p></div>
+      <div class="row"><span class="ic2">03</span><p><b>Mark sections done</b> as you finish them — the checkmarks save automatically so you always know where you left off.</p></div>
+      <div class="row"><span class="ic2">04</span><p><b>Don't rush.</b> One or two sections a night beats cramming ten and absorbing none. Slow is smooth, smooth is fast.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ PART 0 ============ -->
+  <section class="part-head" id="p0">
+    <div class="pk">Part 0 · Before you write a line</div>
+    <h2>The workshop & the family tree</h2>
+    <p class="pintro">You can't script a thing until you know where code lives and what it's allowed to touch. Skip this and every future bug becomes "why won't it run" instead of a real problem you can solve.</p>
+  </section>
+
+  <section class="lesson" id="s0-1">
+    <div class="eg">0.1</div>
+    <h3>What Roblox Studio actually is</h3>
+    <p>Roblox Studio is two tools wearing one coat. It's a <b>builder</b> (you drag in parts, shape a world) and it's a <b>code editor</b> (you write the logic that makes the world do things). A game is just a world plus the scripts that bring it to life.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A puppet theatre. The <b>parts</b> are the puppets and the set. The <b>scripts</b> are you, pulling the strings. A puppet alone does nothing — the strings are where "alive" comes from.</p></div>
+    <p>You don't need to be a great builder to be a great scripter. Plenty of paid commissions are pure logic dropped into someone else's world. Your job in this course is the strings, not the puppets.</p>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Open Studio → New → Baseplate. That flat grey world is your sandbox for the rest of this course. Leave it open.</p></div>
+  </section>
+
+  <section class="lesson" id="s0-2">
+    <div class="eg">0.2</div>
+    <h3>The Explorer & the hierarchy</h3>
+    <p>On the right side of Studio is a panel called the <b>Explorer</b>. It's a list of everything that exists in your game, arranged as a family tree — parents and children. This tree is the single most important thing to understand, because <b>your code navigates it constantly</b>.</p>
+    <p>Everything in the tree is an <b>Instance</b> — a generic word for "a thing in the game." A Part is an Instance. A Script is an Instance. A Player is an Instance. They all sit somewhere in the tree, and they all have a parent.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>Folders on a computer. <code class="ic">workspace</code> is a folder. Inside it is a folder for your character. Inside that is your <code class="ic">Humanoid</code>. To reach something, you walk the path: folder → folder → thing.</p></div>
+    <p>In code, you walk that path with dots. <code class="ic">workspace.Baseplate</code> means "the child named Baseplate, inside workspace." Each dot is one step down the tree.</p>
+    <div class="code"><pre><code class="lua">-- "Go into workspace, find the child called Baseplate"
+local floor = workspace.Baseplate
+
+-- You can go deeper, one dot per step down the tree
+local part = workspace.Model.Door.Handle</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>The Explorer tree and your code are the same thing seen two ways. When you write <code class="ic">workspace.Something</code>, you are pointing at a real row in that panel. If the path in your code doesn't match the tree, your code can't find it — that's the #1 beginner error.</p></div>
+  </section>
+
+  <section class="lesson" id="s0-3">
+    <div class="eg">0.3</div>
+    <h3>Services & the <code class="ic">game</code> object</h3>
+    <p>At the very top of the tree sits <code class="ic">game</code> — the root of everything. Directly under it are <b>Services</b>: big built-in containers, each with a job. You'll use a handful constantly:</p>
+    <ul>
+      <li><code class="ic">Workspace</code> — the 3D world. Parts, models, the map.</li>
+      <li><code class="ic">Players</code> — everyone currently in the game.</li>
+      <li><code class="ic">ReplicatedStorage</code> — a shared box both the server and players can see (you'll keep important stuff here).</li>
+      <li><code class="ic">ServerScriptService</code> — where your main server scripts live and run.</li>
+      <li><code class="ic">StarterGui</code> / <code class="ic">StarterPlayer</code> — templates copied to each player when they join.</li>
+    </ul>
+    <p>You grab a service with <code class="ic">game:GetService("Name")</code>. That's the safe, correct way — always.</p>
+    <div class="code"><pre><code class="lua">local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")</code></pre></div>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>Always grab services with <code class="ic">:GetService()</code> at the top of your script and store them in <code class="ic">local</code> variables. It's reliable, it's what every pro does, and it makes the rest of the script readable.</p></div>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A big building. <code class="ic">game</code> is the building. Services are the departments — Workspace is the showroom floor, Players is HR, ServerScriptService is the back office where the real machinery runs.</p></div>
+  </section>
+
+  <section class="lesson" id="s0-4">
+    <div class="eg">0.4</div>
+    <h3>The three kinds of script (this matters a lot)</h3>
+    <p>There are three script types. Using the wrong one is the cause of a huge share of "why isn't this working" moments. Learn the difference now and save yourself weeks.</p>
+    <ul>
+      <li><b>Script</b> — runs on the <b>server</b> (Roblox's computer). The boss. It owns the truth: health, money, who has what. Lives in <code class="ic">ServerScriptService</code>.</li>
+      <li><b>LocalScript</b> — runs on <b>one player's own device</b>. Handles what only that player sees: their buttons, their camera, their UI. Lives in player containers like <code class="ic">StarterPlayerScripts</code>.</li>
+      <li><b>ModuleScript</b> — doesn't run by itself at all. It's a <b>reusable toolbox</b> other scripts borrow from. Lives in <code class="ic">ReplicatedStorage</code> (shared) or <code class="ic">ServerStorage</code> (server-only).</li>
+    </ul>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A restaurant. The <b>Script</b> is the kitchen — one place, trusted, makes the real food. <b>LocalScripts</b> are each customer's table — they can press the call button, but they can't cook. <b>ModuleScripts</b> are the recipe book everyone shares.</p></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Anything that must be <b>fair and cheat-proof</b> (money, damage, saving data) goes in a <b>Script</b> on the server. Anything that's just <b>for one player to see or click</b> goes in a <b>LocalScript</b>. This single rule prevents most exploits. We'll go deep on it in Part 3.</p></div>
+  </section>
+
+  <section class="lesson" id="s0-5">
+    <div class="eg">0.5</div>
+    <h3>Your first script + reading the Output</h3>
+    <p>Time to make the computer talk back. <code class="ic">print()</code> writes a message to the <b>Output</b> window — your window into what your code is doing. Open it via <code class="ic">View → Output</code>. You will live in this window. It's how you see your thoughts made real.</p>
+    <div class="code"><pre><code class="lua">-- Put this in a Script inside ServerScriptService, then press Play
+print("The server is alive")
+print("2 + 2 is", 2 + 2)</code></pre></div>
+    <p>Press the Play button. In the Output you'll see your messages appear. That loop — write code, press play, read output — is 90% of what scripting feels like, forever.</p>
+    <div class="callout c-warn"><div class="ct">⚠️ Common mistake</div><p>If nothing prints, check: is it a <b>Script</b> (not LocalScript) and is it inside <b>ServerScriptService</b>? A LocalScript in ServerScriptService simply won't run — wrong type, wrong place.</p></div>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Make the script print your name and your favourite number. Then make it print <code class="ic">10 * 10</code>. Watch the Output. You just ran code.</p></div>
+    <details class="check"><summary>Check yourself: where does a Script run, and where does a LocalScript run?</summary><div class="ans"><p>A <b>Script</b> runs on the <b>server</b> (Roblox's computer) — it's trusted and owns the real game state. A <b>LocalScript</b> runs on <b>one player's own device</b> — it only handles what that single player sees or controls. Mixing these up is the root of most beginner bugs.</p></div></details>
+  </section>
+
+  <!-- ============ PART 1 ============ -->
+  <section class="part-head" id="p1">
+    <div class="pk">Part 1 · The Luau language</div>
+    <h2>The grammar of everything</h2>
+    <p class="pintro">Luau is the language Roblox uses. This part is the alphabet and grammar — variables, decisions, loops, functions, tables. It's maybe 80% of every script ever written. The reason commissions feel impossible right now is that this faded. Rebuild it and the gap mostly closes.</p>
+  </section>
+
+  <section class="lesson" id="s1-1">
+    <div class="eg">1.1</div>
+    <h3>Variables — labelled boxes</h3>
+    <p>A variable is a <b>named box that holds a value</b>. You put something in, give the box a name, and later you use the name to get the thing back. That's it.</p>
+    <div class="code"><pre><code class="lua">local playerName = "Timz"
+local age = 18
+local isClimbing = true
+
+print(playerName)   -- Timz
+print(age)          -- 18</code></pre></div>
+    <p>The word <code class="ic">local</code> means "this box exists only in this area" — we'll explain why that matters in 1.8. For now: <b>always write <code class="ic">local</code></b> in front of new variables. It's a habit that prevents real bugs.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>Labelled jars on a shelf. <code class="ic">age</code> is the label; <code class="ic">18</code> is what's in the jar. Say "age" and you get 18 back. Put something new in the jar later and the label still works.</p></div>
+    <p>You can change what's in the box at any time — just don't write <code class="ic">local</code> again, because the box already exists:</p>
+    <div class="code"><pre><code class="lua">local score = 0
+score = score + 10   -- now 10
+score = score + 5    -- now 15
+print(score)         -- 15</code></pre></div>
+  </section>
+
+  <section class="lesson" id="s1-2">
+    <div class="eg">1.2</div>
+    <h3>The basic types: nil, boolean, number, string</h3>
+    <p>Every value has a <b>type</b> — a category that decides what it can do. There are four you'll meet immediately:</p>
+    <ul>
+      <li><b>number</b> — any number. <code class="ic">3</code>, <code class="ic">-12</code>, <code class="ic">7.5</code>. You can do maths with these.</li>
+      <li><b>string</b> — text. Always in quotes: <code class="ic">"hello"</code>, <code class="ic">"Door_3"</code>. Quotes are how Luau knows it's text, not code.</li>
+      <li><b>boolean</b> — only two values: <code class="ic">true</code> or <code class="ic">false</code>. The yes/no of programming.</li>
+      <li><b>nil</b> — "nothing here." The empty box. When something doesn't exist, it's <code class="ic">nil</code>.</li>
+    </ul>
+    <div class="code"><pre><code class="lua">local coins = 100        -- number
+local title = "Champion" -- string
+local hasKey = false     -- boolean
+local reward = nil       -- nothing yet</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p><code class="ic">nil</code> is not zero and not "false" — it means <b>absence</b>. When you ask the tree for a child that isn't there, you get <code class="ic">nil</code>. Half of all errors are "I tried to use something that was actually nil." Learning to expect nil is a superpower.</p></div>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Make one variable of each type and print them. Then print <code class="ic">type(coins)</code> and <code class="ic">type(title)</code> — Luau will literally tell you the type of anything.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-3">
+    <div class="eg">1.3</div>
+    <h3>Operators & type coercion</h3>
+    <p>Operators are the little symbols that combine values. The maths ones are obvious: <code class="ic">+ - * /</code>. Luau adds handy shortcuts so you don't repeat the variable name:</p>
+    <div class="code"><pre><code class="lua">local coins = 50
+coins += 10   -- same as coins = coins + 10  → 60
+coins -= 25   -- → 35
+coins *= 2    -- → 70</code></pre></div>
+    <p>For text, <code class="ic">..</code> (two dots) glues strings together. This is called concatenation — you'll use it constantly to build messages:</p>
+    <div class="code"><pre><code class="lua">local name = "Timz"
+print("Welcome, " .. name .. "!")   -- Welcome, Timz!
+
+local level = 5
+print("You reached level " .. level) -- numbers auto-convert to text here</code></pre></div>
+    <p>That last line shows <b>coercion</b>: when you glue a number to text with <code class="ic">..</code>, Luau quietly turns the number into text for you. Helpful — but don't rely on it the other way (text doesn't become a number automatically; you'd use <code class="ic">tonumber("42")</code> for that).</p>
+    <div class="callout c-warn"><div class="ct">⚠️ Common mistake</div><p>Mixing up <code class="ic">..</code> (glue text) and <code class="ic">+</code> (add numbers). <code class="ic">"5" + 5</code> is trouble; <code class="ic">"5" .. 5</code> gives <code class="ic">"55"</code>. Pick the operator that matches what you actually want.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-4">
+    <div class="eg">1.4</div>
+    <h3>Strings — working with text</h3>
+    <p>Text comes up everywhere: names, messages, item IDs. Luau gives you a toolbox called <code class="ic">string</code> for slicing and shaping it. A few you'll actually use:</p>
+    <div class="code"><pre><code class="lua">local word = "Roblox"
+
+print(#word)                    -- 6  (the # counts characters)
+print(string.upper(word))       -- ROBLOX
+print(string.lower(word))       -- roblox
+print(string.sub(word, 1, 3))   -- Rob  (characters 1 to 3)
+
+-- string.format builds clean text with slots
+local coins = 250
+print(string.format("You have %d coins", coins)) -- You have 250 coins</code></pre></div>
+    <p>The <code class="ic">#</code> in front of a string gives its length. You'll see <code class="ic">#</code> again with tables (it counts items there too).</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A label maker. <code class="ic">string.format</code> is a template with blank slots (<code class="ic">%d</code> for a number, <code class="ic">%s</code> for text), and you hand it the values to drop in. Cleaner than gluing fifteen <code class="ic">..</code> together.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-5">
+    <div class="eg">1.5</div>
+    <h3>Conditionals — making decisions</h3>
+    <p>This is where code stops being a straight line and starts <b>thinking</b>. An <code class="ic">if</code> statement runs code only when something is true.</p>
+    <div class="code"><pre><code class="lua">local coins = 120
+
+if coins >= 100 then
+    print("You can afford the sword")
+end</code></pre></div>
+    <p>The part between <code class="ic">if</code> and <code class="ic">then</code> is a <b>question that's either true or false</b>. If true, the code inside runs. <code class="ic">end</code> marks where the "if" block stops. Add <code class="ic">else</code> for the other case, and <code class="ic">elseif</code> for more cases:</p>
+    <div class="code"><pre><code class="lua">local health = 30
+
+if health <= 0 then
+    print("You died")
+elseif health < 50 then
+    print("Careful — low health")
+else
+    print("You're fine")
+end</code></pre></div>
+    <p>The comparison operators that make the questions: <code class="ic">==</code> (equal), <code class="ic">~=</code> (not equal), <code class="ic">&lt;</code> <code class="ic">&gt;</code> <code class="ic">&lt;=</code> <code class="ic">&gt;=</code>.</p>
+    <div class="callout c-warn"><div class="ct">⚠️ Common mistake</div><p><code class="ic">=</code> puts a value in a box. <code class="ic">==</code> asks "are these equal?" Writing <code class="ic">if coins = 100</code> is an error — you meant <code class="ic">if coins == 100</code>. One equals = store. Two equals = compare.</p></div>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Make a variable <code class="ic">age</code>. Write an if/elseif/else that prints "child", "teen", or "adult" depending on the number. Change the number and re-run to test every branch.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-6">
+    <div class="eg">1.6</div>
+    <h3>Logic: and / or / not</h3>
+    <p>Often a decision depends on more than one thing. These three words combine true/false questions:</p>
+    <ul>
+      <li><code class="ic">and</code> — true only if <b>both</b> sides are true.</li>
+      <li><code class="ic">or</code> — true if <b>either</b> side is true.</li>
+      <li><code class="ic">not</code> — flips it: <code class="ic">not true</code> is false.</li>
+    </ul>
+    <div class="code"><pre><code class="lua">local hasKey = true
+local coins = 50
+
+if hasKey and coins >= 30 then
+    print("Open the door")  -- needs BOTH
+end
+
+if coins >= 100 or hasKey then
+    print("Allowed in")     -- needs EITHER
+end
+
+if not hasKey then
+    print("Find the key first")
+end</code></pre></div>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A nightclub door. <code class="ic">and</code> = "ID <b>and</b> over 18" (both or you're out). <code class="ic">or</code> = "guest list <b>or</b> a ticket" (either gets you in). <code class="ic">not</code> = "<b>not</b> on the banned list."</p></div>
+  </section>
+
+  <section class="lesson" id="s1-7">
+    <div class="eg">1.7</div>
+    <h3>Loops — repeating without copy-paste</h3>
+    <p>Computers are brilliant at doing the same thing many times. Loops are how you say "repeat this." There are three shapes; you'll mostly use two.</p>
+    <p><b>Numeric for</b> — repeat a set number of times, counting as you go:</p>
+    <div class="code"><pre><code class="lua">-- from 1 to 5, step by 1
+for i = 1, 5 do
+    print("Count: " .. i)   -- prints 1,2,3,4,5
+end</code></pre></div>
+    <p><b>While</b> — repeat <i>as long as</i> something stays true:</p>
+    <div class="code"><pre><code class="lua">local fuel = 3
+while fuel > 0 do
+    print("Vroom, fuel left: " .. fuel)
+    fuel -= 1
+end</code></pre></div>
+    <div class="callout c-warn"><div class="ct">⚠️ Common mistake — the infinite loop</div><p>If a <code class="ic">while</code> condition never becomes false, the loop never stops and your game freezes. Always make sure something inside changes toward ending it (here, <code class="ic">fuel -= 1</code>). If you forget, the fuel never drops and it runs forever.</p></div>
+    <p>The third shape, <b>generic for</b> with <code class="ic">pairs</code>/<code class="ic">ipairs</code>, is for walking through tables — we'll meet it in 1.11 once you have tables to walk through.</p>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Write a numeric for that prints the 7 times table (7, 14, 21 …). Then write a while loop that counts a variable down from 10 to 0.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-8">
+    <div class="eg">1.8</div>
+    <h3>Scope — why we always write <code class="ic">local</code></h3>
+    <p>Scope means "where a variable is allowed to be seen." A <code class="ic">local</code> variable lives only inside the block it was made in — the function, the loop, the if. Outside that block, it doesn't exist.</p>
+    <div class="code"><pre><code class="lua">local function test()
+    local secret = "hidden"   -- exists only inside test()
+    print(secret)             -- works
+end
+
+test()
+print(secret)  -- ERROR: secret is nil out here — it was local to the function</code></pre></div>
+    <p>You might wonder: why bother? Why not make everything visible everywhere (a "global")? Because globals are a trap. They leak across your whole game, two scripts accidentally share the same name, and you get bugs that are agony to find. <b>Locals keep each piece of code in its own lane.</b></p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>Rooms in a house. A <code class="ic">local</code> variable is a private thought you have in the bedroom — it doesn't follow you to the kitchen. Globals are shouting everything through the whole house; eventually two people shout the same word and chaos.</p></div>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>Put <code class="ic">local</code> in front of <b>every</b> variable, every time, unless you have a specific reason not to (you almost never will). It's the mark of someone who knows what they're doing.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-9">
+    <div class="eg">1.9</div>
+    <h3>Functions — machines that do a job</h3>
+    <p>A function is a <b>named chunk of code you can run whenever you want</b>. You write it once, then "call" it by name as many times as you like. This is the heart of not repeating yourself.</p>
+    <div class="code"><pre><code class="lua">-- define it once
+local function greet(name)
+    print("Hello, " .. name .. "!")
+end
+
+-- call it whenever
+greet("Timz")    -- Hello, Timz!
+greet("Sara")    -- Hello, Sara!</code></pre></div>
+    <p>The word in the brackets — <code class="ic">name</code> — is a <b>parameter</b>: an empty slot the function fills in with whatever you hand it. When you call <code class="ic">greet("Timz")</code>, the value <code class="ic">"Timz"</code> (the <b>argument</b>) drops into that slot.</p>
+    <p>Functions can also hand a value <i>back</i> with <code class="ic">return</code>:</p>
+    <div class="code"><pre><code class="lua">local function add(a, b)
+    return a + b
+end
+
+local total = add(3, 4)   -- total is now 7
+print(total)</code></pre></div>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A coffee machine. Parameters are the buttons (size, type) — the slots you set. You press go (call it), it does its work inside, and <code class="ic">return</code> is the cup it hands back. You don't rebuild the machine each morning; you just press the button.</p></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>If you ever find yourself copy-pasting the same few lines with tiny changes, that's a function begging to be born. "Write it once, use it everywhere" is the single biggest upgrade from beginner to competent.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-10">
+    <div class="eg">1.10</div>
+    <h3>Multiple returns (tuples)</h3>
+    <p>Unlike most languages, a Luau function can hand back <b>more than one value at once</b>. You catch them with multiple variables on the left.</p>
+    <div class="code"><pre><code class="lua">local function getStats()
+    return 100, 50, "Champion"   -- three values
+end
+
+local health, coins, title = getStats()
+print(health)  -- 100
+print(coins)   -- 50
+print(title)   -- Champion</code></pre></div>
+    <p>You'll see this a lot with built-in functions. The most important one, <code class="ic">pcall</code> (Part 7), returns "did it work?" plus "the result" together. Knowing functions can return pairs prepares you for it.</p>
+  </section>
+
+  <section class="lesson" id="s1-11">
+    <div class="eg">1.11</div>
+    <h3>Tables, part 1 — lists (arrays)</h3>
+    <p>So far each box holds one value. But what if you want a <b>list</b> of things — five items in an inventory, all the players, a row of doors? That's a <b>table</b>. Tables are the most important data structure in Luau; almost everything is built on them.</p>
+    <p>The simplest table is a numbered list, called an <b>array</b>. Curly braces, values separated by commas:</p>
+    <div class="code"><pre><code class="lua">local inventory = {"sword", "shield", "potion"}
+
+print(inventory[1])   -- sword   (Luau counts from 1, not 0!)
+print(inventory[2])   -- shield
+print(#inventory)     -- 3       (# counts the items)</code></pre></div>
+    <div class="callout c-warn"><div class="ct">⚠️ Important — Luau counts from 1</div><p>Most languages start lists at 0. <b>Luau starts at 1.</b> The first item is <code class="ic">[1]</code>, not <code class="ic">[0]</code>. Forget this and you'll get the wrong item or a nil. Tattoo it on your brain.</p></div>
+    <p>Now the generic for loop finally makes sense — <code class="ic">ipairs</code> walks an array in order:</p>
+    <div class="code"><pre><code class="lua">for index, item in ipairs(inventory) do
+    print(index .. ": " .. item)
+end
+-- 1: sword
+-- 2: shield
+-- 3: potion</code></pre></div>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>An egg carton. One container, numbered slots, an egg in each. <code class="ic">inventory[2]</code> means "open slot 2." The carton holds many eggs under one label — that's the whole point of a table.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-12">
+    <div class="eg">1.12</div>
+    <h3>Tables, part 2 — labelled data (dictionaries)</h3>
+    <p>Numbered slots are great for lists. But sometimes you want to label your data — not "slot 1, slot 2" but "health, coins, name." That's a <b>dictionary</b>: a table where each value has a word (a <b>key</b>) instead of a number.</p>
+    <div class="code"><pre><code class="lua">local player = {
+    name = "Timz",
+    health = 100,
+    coins = 250,
+}
+
+print(player.name)     -- Timz
+print(player.coins)    -- 250
+
+player.coins = player.coins + 50   -- update by name
+print(player.coins)    -- 300</code></pre></div>
+    <p>This is how you keep related information together in one tidy package. Instead of three loose variables, one <code class="ic">player</code> table holds everything about that player. You'll structure almost all real systems this way.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A form you fill out. Instead of numbered blanks, it has labelled fields: Name ___, Age ___, Email ___. <code class="ic">player.health</code> = "read the Health field." Labels are clearer than counting slots when data has meaning.</p></div>
+    <p>To walk a dictionary, use <code class="ic">pairs</code> (not <code class="ic">ipairs</code> — that's only for numbered lists):</p>
+    <div class="code"><pre><code class="lua">for key, value in pairs(player) do
+    print(key .. " = " .. tostring(value))
+end
+-- name = Timz   /   health = 100   /   coins = 300  (order not guaranteed)</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p><b>Array</b> = numbered list, order matters, walk with <code class="ic">ipairs</code>. <b>Dictionary</b> = labelled fields, look things up by name, walk with <code class="ic">pairs</code>. Same braces <code class="ic">{}</code>, two uses. Knowing which you need is half of structuring data well.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-13">
+    <div class="eg">1.13</div>
+    <h3>Tables, part 3 — nesting & the table toolbox</h3>
+    <p>Here's the real power: <b>tables can hold other tables</b>. This lets you model anything — a list of players, where each player is a dictionary of their stats.</p>
+    <div class="code"><pre><code class="lua">local party = {
+    { name = "Timz",  hp = 100 },
+    { name = "Sara",  hp = 80  },
+}
+
+print(party[1].name)   -- Timz  (item 1, then its name field)
+print(party[2].hp)     -- 80
+
+for _, member in ipairs(party) do
+    print(member.name .. " has " .. member.hp .. " HP")
+end</code></pre></div>
+    <p>The <code class="ic">_</code> is just a throwaway name for "I don't care about the index here." Use it when you only want the value.</p>
+    <p>Luau gives you a <code class="ic">table</code> toolbox for changing arrays:</p>
+    <div class="code"><pre><code class="lua">local items = {"sword", "shield"}
+
+table.insert(items, "potion")   -- add to the end → {sword, shield, potion}
+table.remove(items, 1)          -- remove item 1   → {shield, potion}
+
+print(#items)                   -- 2</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Nested tables are how every real system is built: inventories, save data, leaderboards, shop catalogues — all just tables inside tables. If you're comfortable here, you can model anything a commission throws at you. This is a big checkpoint.</p></div>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Build a <code class="ic">shop</code> table holding 3 items, each a dictionary with a <code class="ic">name</code> and <code class="ic">price</code>. Loop through and print "Sword costs 50". This is a real shop catalogue — you'll reuse this shape in Part 5.</p></div>
+  </section>
+
+  <section class="lesson" id="s1-14">
+    <div class="eg">1.14</div>
+    <h3>Bonus: type checking (the modern way)</h3>
+    <p>Luau can optionally check your types as you write, catching mistakes <i>before</i> you even run. You add a little <code class="ic">: type</code> annotation. It's optional, but it makes big code far safer and is standard on professional work.</p>
+    <div class="code"><pre><code class="lua">local function addCoins(amount: number): number
+    return amount + 10
+end
+
+-- Studio will warn you BEFORE running if you do this:
+addCoins("hello")   -- type error: expected number, got string</code></pre></div>
+    <p>As of early 2026, Roblox ships an improved type checker (the "new type solver") on by default in most modes — better at catching real mistakes and quieter about fake ones. You don't have to master types now, but get used to seeing <code class="ic">: number</code>, <code class="ic">: string</code>, <code class="ic">: Player</code> — it's everywhere in good code.</p>
+    <div class="callout c-do"><div class="ct">✅ Do this (later)</div><p>For your first month, focus on logic — types can wait. But once a system gets big, start annotating your function parameters. It turns "mystery crash at runtime" into "red squiggle while typing."</p></div>
+    <div class="done-row"></div>
+  </section>
+
+  <!-- ============ PART 2 ============ -->
+  <section class="part-head" id="p2">
+    <div class="pk">Part 2 · Making the world react</div>
+    <h2>Touching the world & hearing it back</h2>
+    <p class="pintro">You know the grammar. Now you'll reach out and change actual things in the game — and let the game tell your code when something happens. This is the moment scripting stops feeling like notes and starts feeling like a game.</p>
+  </section>
+
+  <section class="lesson" id="s2-1">
+    <div class="eg">2.1</div>
+    <h3>Instances & properties</h3>
+    <p>Remember every thing in the tree is an <b>Instance</b>. Each Instance has <b>properties</b> — settings you can read and change from code. A Part has a <code class="ic">Color</code>, a <code class="ic">Size</code>, a <code class="ic">Transparency</code>, an <code class="ic">Anchored</code> on/off. You change a property with a dot and an equals.</p>
+    <div class="code"><pre><code class="lua">local part = workspace.Baseplate
+
+part.Transparency = 0.5
+part.Color = Color3.fromRGB(255, 92, 66)   -- red-orange
+part.Material = Enum.Material.Neon</code></pre></div>
+    <p>That <code class="ic">Enum.Material.Neon</code> is an <b>Enum</b> — a fixed menu of allowed choices. Materials, easing styles, key codes: when there's a limited list of valid options, Roblox uses an Enum so you can't pick something invalid. Type <code class="ic">Enum.</code> in Studio and autocomplete shows the menus.</p>
+    <p>You can also <b>make</b> new Instances from scratch with <code class="ic">Instance.new</code>:</p>
+    <div class="code"><pre><code class="lua">local newPart = Instance.new("Part")
+newPart.Size = Vector3.new(4, 4, 4)
+newPart.Position = Vector3.new(0, 10, 0)
+newPart.Parent = workspace   -- nothing appears until you set the Parent!</code></pre></div>
+    <div class="callout c-warn"><div class="ct">⚠️ Common mistake</div><p>A new Instance is invisible until you set its <code class="ic">.Parent</code>. Create it, configure it, <b>then</b> parent it last. Forgetting the parent is "I made a part and nothing happened" — it exists in limbo, attached to nothing.</p></div>
+  </section>
+
+  <section class="lesson" id="s2-2">
+    <div class="eg">2.2</div>
+    <h3>Events & <code class="ic">:Connect</code> — the world's doorbells</h3>
+    <p>So far your code runs top to bottom and stops. But games are about <b>reacting</b>: when a player touches the lava, when a button is clicked, when someone joins. Roblox lets things announce "I just happened!" — these announcements are <b>events</b>, and you listen to them with <code class="ic">:Connect</code>.</p>
+    <div class="code"><pre><code class="lua">local button = workspace.Button
+
+button.Touched:Connect(function(otherPart)
+    print("Something touched the button!")
+end)</code></pre></div>
+    <p>Read it slowly: "On the button's <b>Touched</b> event, <b>Connect</b> this function." You're handing the event a function and saying "run this every time it happens." The function inside is your reaction. It waits, silently, and fires whenever the event does — maybe seconds later, maybe never.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A doorbell wired to an action. <code class="ic">:Connect</code> is the wiring. You connect "ring → I open the door." Then you walk away. The wire waits forever; when someone presses the bell, your action fires — without you standing there checking.</p></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>This is <b>event-driven programming</b>, and it's how nearly all of Roblox works. You don't constantly ask "did it happen yet?" — you set up reactions in advance and let the events trigger them. Almost every system you build is "when X happens, do Y," wired with <code class="ic">:Connect</code>.</p></div>
+  </section>
+
+  <section class="lesson" id="s2-3">
+    <div class="eg">2.3</div>
+    <h3>The events you'll use constantly</h3>
+    <p>The function an event hands you can come with information. <code class="ic">Touched</code> hands you the part that touched. <code class="ic">PlayerAdded</code> hands you the player who joined. A few you'll meet again and again:</p>
+    <div class="code"><pre><code class="lua">local Players = game:GetService("Players")
+
+-- Fires when anyone joins the game
+Players.PlayerAdded:Connect(function(player)
+    print(player.Name .. " joined!")
+end)
+
+-- Fires when a part is touched — gives you what touched it
+workspace.Trap.Touched:Connect(function(hit)
+    -- find the Humanoid (the thing that has health) on whatever touched us
+    local humanoid = hit.Parent:FindFirstChildWhichIsA("Humanoid")
+    if humanoid then
+        humanoid.Health -= 20
+    end
+end)</code></pre></div>
+    <p><code class="ic">FindFirstChildWhichIsA("Humanoid")</code> safely looks for a Humanoid and returns <code class="ic">nil</code> if there isn't one — so the <code class="ic">if humanoid then</code> guard stops errors when a random brick touches the trap instead of a player. Expecting nil, again, saving you.</p>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Make a Part called Trap. Use the Touched code above to take 20 health when a player walks on it. Press Play, walk your character into it, watch your health drop. You just built a real game mechanic.</p></div>
+  </section>
+
+  <section class="lesson" id="s2-4">
+    <div class="eg">2.4</div>
+    <h3>Debounce — stopping the spam</h3>
+    <p>Run that trap and you'll notice a problem: <code class="ic">Touched</code> fires <b>many times a second</b> while you stand on it — you lose all your health instantly. The event is too eager. The fix is a pattern called <b>debounce</b>: a simple on/off flag that says "I'm busy, ignore me for a moment."</p>
+    <div class="code"><pre><code class="lua">local trap = workspace.Trap
+local onCooldown = false   -- our flag
+
+trap.Touched:Connect(function(hit)
+    local humanoid = hit.Parent:FindFirstChildWhichIsA("Humanoid")
+    if humanoid and not onCooldown then
+        onCooldown = true          -- shut the door
+        humanoid.Health -= 20
+        task.wait(1)               -- wait 1 second
+        onCooldown = false         -- open the door again
+    end
+end)</code></pre></div>
+    <p>Walk through what happens: first touch, flag is false so we proceed, immediately set it true, deal damage, wait a second, set it false. During that second, every extra Touched hits the <code class="ic">not onCooldown</code> check and bounces off. One hit per second instead of fifty.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A turnstile. After one person goes through it locks for a beat, so the crowd can't all pour through at once. The flag is the lock; <code class="ic">task.wait</code> is how long it stays locked.</p></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Debounce shows up <b>everywhere</b> — attacks, buttons, purchases, abilities. Any time an action shouldn't repeat too fast, you reach for a flag. It's one of the first "real developer" patterns, and you'll use it for the rest of your scripting life.</p></div>
+  </section>
+
+  <section class="lesson" id="s2-5">
+    <div class="eg">2.5</div>
+    <h3>The task library — waiting, the right way</h3>
+    <p>You just used <code class="ic">task.wait(1)</code> to pause for a second. The <code class="ic">task</code> library is the modern, correct way to deal with timing. The three you'll use:</p>
+    <ul>
+      <li><code class="ic">task.wait(n)</code> — pause this code for <code class="ic">n</code> seconds, then continue.</li>
+      <li><code class="ic">task.spawn(fn)</code> — run a function <i>alongside</i> the current one, so neither blocks the other.</li>
+      <li><code class="ic">task.defer(fn)</code> — run a function in a moment, after the current work settles.</li>
+    </ul>
+    <div class="code"><pre><code class="lua">print("start")
+task.wait(2)        -- pause 2 seconds
+print("2 seconds later")
+
+-- run something on the side without stopping the main flow
+task.spawn(function()
+    task.wait(5)
+    print("this fires 5s later, but didn't block anything")
+end)
+print("this prints immediately")</code></pre></div>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>Use <code class="ic">task.wait</code> and <code class="ic">task.spawn</code> — <b>never</b> the old bare <code class="ic">wait()</code> and <code class="ic">spawn()</code>. The old ones are legacy, less accurate, and slower. If you see <code class="ic">wait()</code> in an old tutorial, mentally swap it for <code class="ic">task.wait()</code>.</p></div>
+  </section>
+
+  <!-- ============ PART 3 ============ -->
+  <section class="part-head" id="p3">
+    <div class="pk">Part 3 · The two worlds</div>
+    <h2>Client and server — the thing everyone gets wrong</h2>
+    <p class="pintro">This is the concept that separates people who can build real multiplayer features from people who can't. Get it now, deeply, and you'll dodge the bugs and exploits that trap everyone else. This is your most important conceptual leap so far.</p>
+  </section>
+
+  <section class="lesson" id="s3-1">
+    <div class="eg">3.1</div>
+    <h3>Why there are two sides at all</h3>
+    <p>A Roblox game doesn't run in one place. It runs in <b>two</b>: the <b>server</b> (one powerful computer Roblox owns, shared by everyone in the game) and each player's <b>client</b> (their own phone or PC). They're separate computers, talking over the internet.</p>
+    <p>The server holds the <b>real, shared truth</b> — the actual map, everyone's real health, the real scores. Each client holds <b>their own view</b> of it, and handles things only they care about: their camera, their buttons, their screen.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A board game night. The <b>board in the middle</b> is the server — one shared truth everyone sees and trusts. Each <b>player's hand of cards</b> is their client — private, theirs to look at. You can rearrange your own hand all you like, but you can't just reach over and change the board; the table has to agree.</p></div>
+    <p>When the server changes something — moves a part, updates health — it automatically tells every client, and they update their view. This automatic sync is called <b>replication</b>. Server changes flow down to everyone. That's the default direction, and it matters enormously.</p>
+  </section>
+
+  <section class="lesson" id="s3-2">
+    <div class="eg">3.2</div>
+    <h3>Server authority (and why clients can't be trusted)</h3>
+    <p>Here's the crucial rule: <b>changes a client makes to the shared world do NOT travel back up to the server or to other players.</b> If a LocalScript on your machine sets your coins to a million, only <i>you</i> see it. The server's real number is unchanged, and the moment it refreshes your view, your fake million vanishes.</p>
+    <p>This is on purpose. It's called <b>FilteringEnabled</b> (always on in modern Roblox), and it exists because clients can be hacked. A player can run modified code on their own device. If clients could change the real game, every game would be trivially cheatable.</p>
+    <div class="callout c-key"><div class="ct">🔑 The golden rule</div><p><b>Never trust the client.</b> Anything that must be real and fair — money, damage, who owns what, saving data — <b>must</b> be decided and applied by the <b>server</b>, in a <b>Script</b>. The client can <i>ask</i>; only the server <i>decides</i>. Burn this in. It's the foundation of every secure system, and Part 6 is entirely about it.</p></div>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A bank. You (client) can <b>request</b> a withdrawal. You cannot reach behind the counter and edit the ledger yourself. The teller (server) checks your balance and decides. Games that let the client edit the ledger get robbed instantly.</p></div>
+  </section>
+
+  <section class="lesson" id="s3-3">
+    <div class="eg">3.3</div>
+    <h3>RemoteEvents — talking across the boundary</h3>
+    <p>So the client and server are separate, and the client can't touch the real world directly. How do they communicate? Through a special object called a <b>RemoteEvent</b> — a walkie-talkie between the two sides. You keep it in <code class="ic">ReplicatedStorage</code> so both sides can see it.</p>
+    <p>The client <b>fires</b> the remote to ask for something; the server <b>listens</b> and decides whether to do it.</p>
+    <div class="code"><pre><code class="lua">-- CLIENT (LocalScript): player clicked "Buy". Ask the server.
+local remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
+local buyEvent = remotes:WaitForChild("BuyItem")
+
+buyEvent:FireServer("sword")   -- "hey server, I want to buy a sword"</code></pre></div>
+    <div class="code"><pre><code class="lua">-- SERVER (Script): listen, and DECIDE. Never just obey.
+buyEvent.OnServerEvent:Connect(function(player, itemName)
+    -- 'player' is filled in automatically and CANNOT be faked
+    local price = getPrice(itemName)
+    if player.leaderstats.Coins.Value >= price then
+        player.leaderstats.Coins.Value -= price
+        giveItem(player, itemName)
+    end
+    -- if they can't afford it, we simply do nothing
+end)</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Notice the server <b>checks before acting</b> — it looks up the price and the real coin count itself. It never trusts that the client "already paid." The first argument <code class="ic">player</code> is injected by Roblox and is genuinely trustworthy; <b>everything after it is the client's claim and must be verified.</b></p></div>
+    <div class="callout c-warn"><div class="ct">⚠️ Common mistake</div><p>In the LocalScript, use <code class="ic">:WaitForChild()</code> to grab the remote — when a player joins, the remote might not have loaded yet. <code class="ic">ReplicatedStorage.Remotes.BuyItem</code> can error with "not a valid member"; <code class="ic">:WaitForChild("BuyItem")</code> patiently waits for it to exist.</p></div>
+  </section>
+
+  <section class="lesson" id="s3-4">
+    <div class="eg">3.4</div>
+    <h3>RemoteFunctions & UnreliableRemoteEvents</h3>
+    <p>A RemoteEvent is fire-and-forget — you shout and move on. Sometimes the client needs an <b>answer back</b> (e.g. "what's in my inventory?"). For that there's a <b>RemoteFunction</b>: the client asks and <i>waits</i> for the server to return a value.</p>
+    <div class="code"><pre><code class="lua">-- SERVER: define what to return
+getInventory.OnServerInvoke = function(player)
+    return getPlayerInventory(player.UserId)   -- this value goes back to the client
+end</code></pre></div>
+    <div class="code"><pre><code class="lua">-- CLIENT: ask and wait for the answer
+local items = getInventory:InvokeServer()   -- pauses here until the server returns
+print(items)</code></pre></div>
+    <p>There's also the <b>UnreliableRemoteEvent</b>, for high-frequency updates where it's fine if the occasional message gets dropped — like streaming a position 60 times a second. It's lighter on the network.</p>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p><b>Default to RemoteEvent.</b> Use a RemoteFunction only when you truly need a value back, and only <b>client→server</b> — never make the server invoke the client (a hacked client can freeze and stall your whole server). When in doubt: RemoteEvent.</p></div>
+  </section>
+
+  <section class="lesson" id="s3-5">
+    <div class="eg">3.5</div>
+    <h3>BindableEvents — talking on the same side</h3>
+    <p>Remotes cross the client↔server gap. But sometimes two scripts on the <b>same</b> side need to talk — two server scripts, say. For that you use a <b>BindableEvent</b>: same idea, no internet crossing, server-to-server or client-to-client only.</p>
+    <div class="code"><pre><code class="lua">-- One server script fires it
+myBindable:Fire("level complete")
+
+-- Another server script listens
+myBindable.Event:Connect(function(message)
+    print("Got: " .. message)
+end)</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Quick rule: crossing the client/server gap → <b>Remote</b>. Staying on one side → <b>Bindable</b>. Most beginners never need Bindables much; just know they exist so you don't try to force a Remote where it doesn't belong.</p></div>
+  </section>
+
+  <!-- ============ PART 4 ============ -->
+  <section class="part-head" id="p4">
+    <div class="pk">Part 4 · Code that doesn't rot</div>
+    <h2>Organization & object-oriented programming</h2>
+    <p class="pintro">This is the crux pitch. The "advanced systems" you couldn't read in commissions are mostly just well-organized code using the ideas in this part: modules and OOP. It's the hardest hold on the wall — and it's also your payday. Go slow here.</p>
+  </section>
+
+  <section class="lesson" id="s4-1">
+    <div class="eg">4.1</div>
+    <h3>ModuleScripts — reusable toolboxes</h3>
+    <p>Imagine you've written a great function for giving coins. You need it in five different scripts. Copy-pasting it five times is a nightmare — fix a bug and you have to fix it five times. A <b>ModuleScript</b> solves this: you write the code <b>once</b>, in one place, and every other script <b>borrows</b> it.</p>
+    <p>A ModuleScript is different from a normal Script: it doesn't run on its own. It builds up a value (usually a table of functions) and <code class="ic">return</code>s it at the end. Other scripts grab it with <code class="ic">require</code>.</p>
+    <div class="code"><pre><code class="lua">-- ModuleScript named "CoinManager" in ReplicatedStorage
+local CoinManager = {}   -- a table to hold our tools
+
+function CoinManager.give(player, amount)
+    player.leaderstats.Coins.Value += amount
+end
+
+function CoinManager.take(player, amount)
+    player.leaderstats.Coins.Value -= amount
+end
+
+return CoinManager   -- hand the whole toolbox back</code></pre></div>
+    <div class="code"><pre><code class="lua">-- Any other Script can now use it:
+local CoinManager = require(game.ReplicatedStorage.CoinManager)
+
+CoinManager.give(player, 100)
+CoinManager.take(player, 30)</code></pre></div>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A shared toolbox in a workshop. Instead of every worker buying their own hammer, there's one toolbox everyone borrows from. Need a better hammer? Upgrade it once, in the box, and everyone instantly has the better one. That's <code class="ic">require</code>.</p></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>ModuleScripts are how real projects stay sane. Instead of ten giant tangled scripts, you get small focused modules — <code class="ic">CoinManager</code>, <code class="ic">ShopManager</code>, <code class="ic">DataManager</code> — each doing one job. This is the structure every commission expects, and it's surprisingly simple: a table, some functions, <code class="ic">return</code> it.</p></div>
+  </section>
+
+  <section class="lesson" id="s4-2">
+    <div class="eg">4.2</div>
+    <h3>Abstraction & DRY</h3>
+    <p>Two words pros throw around. They're simpler than they sound.</p>
+    <p><b>DRY</b> = "Don't Repeat Yourself." If the same logic appears twice, pull it into a function or module. Repetition isn't just extra typing — it's extra places for bugs to hide and extra work every time something changes.</p>
+    <p><b>Abstraction</b> = hiding messy details behind a simple name. When you call <code class="ic">CoinManager.give(player, 100)</code>, you don't think about <i>how</i> coins are stored — you just say what you want. The "how" is hidden inside, abstracted away.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>Driving a car. You press the pedal (a simple name) and don't think about fuel injection, pistons, timing. The complexity is <b>abstracted</b> behind a pedal. Good code gives the rest of your program simple pedals to press instead of exposing the whole engine.</p></div>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>When a script gets long and you spot the same pattern three times, stop and ask: "what's the one job here?" Name it, wrap it in a function, and call the name. Your future self reads <code class="ic">openDoor()</code> instead of re-deciphering twenty lines.</p></div>
+  </section>
+
+  <section class="lesson" id="s4-3">
+    <div class="eg">4.3</div>
+    <h3>Metatables — the secret machinery</h3>
+    <p>This one feels strange at first. Stick with it — it's the engine under OOP, and once it clicks, a lot of "advanced" code suddenly reads as obvious.</p>
+    <p>Normally, if you ask a table for a key it doesn't have, you get <code class="ic">nil</code>. A <b>metatable</b> lets you change that behaviour — it's a hidden helper attached to a table that says "if someone asks for something I don't have, here's what to do instead."</p>
+    <p>The key piece is <code class="ic">__index</code>. It means: "when a key is missing here, go look over <i>there</i> for it." That "look elsewhere for missing things" is the whole trick behind sharing behaviour between objects.</p>
+    <div class="code"><pre><code class="lua">local toolbox = { hammer = "bonk", saw = "zzz" }
+
+local myKit = setmetatable({}, { __index = toolbox })
+-- myKit is empty... but its metatable says "missing? check toolbox"
+
+print(myKit.hammer)   -- bonk!  (not in myKit, so it looked in toolbox)
+print(myKit.wrench)   -- nil    (not in either)</code></pre></div>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>Asking your housemate where the scissors are. You check your own drawer (the table) — empty. Your housemate (<code class="ic">__index</code>) says "check the kitchen drawer." Missing things get forwarded to a backup place to look. That forwarding is all a metatable does here.</p></div>
+    <div class="callout c-key"><div class="ct">🔑 Don't panic</div><p>You won't write raw metatables often. You mostly need to understand <code class="ic">__index</code> = "send missing lookups elsewhere," because that's <b>exactly</b> how the OOP pattern in the next section works. Read this twice, then move on — it'll make sense when you see it used.</p></div>
+  </section>
+
+  <section class="lesson" id="s4-4">
+    <div class="eg">4.4</div>
+    <h3>OOP — classes, .new, and self</h3>
+    <p><b>Object-Oriented Programming</b> sounds intimidating; the idea is friendly. You make a <b>blueprint</b> (a "class") that describes a kind of thing — say, a Weapon. Then you stamp out as many real <b>objects</b> from that blueprint as you want, each with its own data, all sharing the same behaviour.</p>
+    <p>Here's the standard Luau pattern. It uses everything you just learned: a table for the blueprint, <code class="ic">__index</code> to share the methods, and a <code class="ic">.new</code> function to stamp out objects.</p>
+    <div class="code"><pre><code class="lua">-- ModuleScript "Weapon" — the blueprint
+local Weapon = {}
+Weapon.__index = Weapon   -- objects will forward missing lookups here
+
+-- the "constructor": builds one new weapon object
+function Weapon.new(name, damage)
+    local self = setmetatable({}, Weapon)
+    self.name = name
+    self.damage = damage
+    return self
+end
+
+-- a "method": behaviour every weapon shares
+function Weapon:attack(target)
+    target.Humanoid.Health -= self.damage
+    print(self.name .. " hit for " .. self.damage)
+end
+
+return Weapon</code></pre></div>
+    <div class="code"><pre><code class="lua">-- Using the blueprint to make real, independent weapons:
+local Weapon = require(game.ReplicatedStorage.Weapon)
+
+local sword = Weapon.new("Sword", 25)
+local bow   = Weapon.new("Bow", 15)
+
+sword:attack(enemy)   -- Sword hit for 25
+bow:attack(enemy)     -- Bow hit for 15</code></pre></div>
+    <p>The magic word is <code class="ic">self</code>. Inside a method, <code class="ic">self</code> means "the specific object this was called on." When you do <code class="ic">sword:attack()</code>, <code class="ic">self</code> is the sword (damage 25). When you do <code class="ic">bow:attack()</code>, <code class="ic">self</code> is the bow (damage 15). Same method, different object, different data. The <b>colon</b> <code class="ic">:</code> is what quietly passes <code class="ic">self</code> in.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A cookie cutter. <code class="ic">Weapon</code> is the cutter (the shape/blueprint). <code class="ic">.new()</code> stamps out a cookie. Each cookie is its own object you can decorate differently (different name, damage) — but they all came from one cutter and all behave the same way. <code class="ic">self</code> is "this particular cookie."</p></div>
+  </section>
+
+  <section class="lesson" id="s4-5">
+    <div class="eg">4.5</div>
+    <h3>Inheritance — building on a blueprint</h3>
+    <p>Sometimes you want a specialised version of a blueprint. A <code class="ic">Sword</code> is a <code class="ic">Weapon</code> but with extra stuff. Rather than rewrite everything, you make the new class <b>inherit</b> from the old one — it gets all the parent's behaviour for free, then adds its own.</p>
+    <div class="code"><pre><code class="lua">local Weapon = require(game.ReplicatedStorage.Weapon)
+
+local Sword = setmetatable({}, { __index = Weapon })  -- Sword falls back to Weapon
+Sword.__index = Sword
+
+function Sword.new(damage)
+    local self = Weapon.new("Sword", damage)  -- build the base weapon first
+    setmetatable(self, Sword)
+    self.canBlock = true                       -- add sword-only data
+    return self
+end
+
+function Sword:block()
+    print("Blocked!")   -- behaviour only swords have
+end
+
+return Sword</code></pre></div>
+    <p>A Sword object can now call <code class="ic">:attack()</code> (inherited from Weapon) <i>and</i> <code class="ic">:block()</code> (its own). The <code class="ic">__index</code> chain forwards missing lookups up to the parent — same forwarding trick from 4.3, now doing real work.</p>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Inheritance is "is-a." A Sword <i>is a</i> Weapon. An Enemy <i>is a</i> Character. When you catch yourself thinking "this is just like that thing but with extras," that's inheritance asking to be used. Don't overuse it early — but recognize the shape.</p></div>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Build the <code class="ic">Weapon</code> module from 4.4. Make a sword and a bow with different damage. Make a dummy with a Humanoid and attack it. Watch the health drop differently per weapon. <b>When this works, the "skill gap" is mostly closed.</b></p></div>
+  </section>
+
+  <section class="lesson" id="s4-6">
+    <div class="eg">4.6</div>
+    <h3>When to use OOP (and when not to)</h3>
+    <p>OOP is powerful but it's not the answer to everything. The honest guidance:</p>
+    <ul>
+      <li><b>Use OOP</b> when you have <i>many things of the same kind</i>, each with its own state — enemies, weapons, pets, towers in a tower-defense game. Blueprint + many objects = perfect fit.</li>
+      <li><b>Skip OOP</b> for one-off logic. A single door that opens doesn't need a class — a simple function is cleaner. Wrapping everything in objects when you don't need to is its own kind of mess.</li>
+    </ul>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>Ask: "will there be lots of these, each tracking its own data?" Yes → class. No → just a function or module. Most commissions that ask for "advanced systems" (mob systems, ability systems, inventory items) are screaming for OOP — which is exactly why learning it unlocks that work.</p></div>
+    <details class="check"><summary>Check yourself: what does <code class="ic">self</code> refer to inside a method?</summary><div class="ans"><p><code class="ic">self</code> is <b>the specific object the method was called on</b>. If you call <code class="ic">sword:attack()</code>, <code class="ic">self</code> is the sword (with the sword's own data). If you call <code class="ic">bow:attack()</code>, <code class="ic">self</code> is the bow. One shared method, but <code class="ic">self</code> lets it act on each object's individual data. The colon <code class="ic">:</code> is what passes <code class="ic">self</code> in automatically.</p></div></details>
+  </section>
+
+  <!-- ============ PART 5 ============ -->
+  <section class="part-head" id="p5">
+    <div class="pk">Part 5 · Real game systems</div>
+    <h2>The systems commissions are made of</h2>
+    <p class="pintro">Everything so far was the toolkit. Now you assemble it into the actual deliverables people pay for: saving data, currency, shops, combat, inventory, UI. These are your portfolio pieces — and the exact things you said clients "always ask for."</p>
+  </section>
+
+  <section class="lesson" id="s5-1">
+    <div class="eg">5.1</div>
+    <h3>Leaderstats & currency (server-owned)</h3>
+    <p><code class="ic">leaderstats</code> is a special folder Roblox watches: anything you put in it shows up on the player list automatically. It's also where you store currency. The non-negotiable rule from Part 3 applies hard here: <b>the server owns it.</b> Create it in a Script, never a LocalScript.</p>
+    <div class="code"><pre><code class="lua">-- Script in ServerScriptService
+local Players = game:GetService("Players")
+
+Players.PlayerAdded:Connect(function(player)
+    local leaderstats = Instance.new("Folder")
+    leaderstats.Name = "leaderstats"   -- the exact name matters
+    leaderstats.Parent = player
+
+    local coins = Instance.new("IntValue")  -- holds a whole number
+    coins.Name = "Coins"
+    coins.Value = 0
+    coins.Parent = leaderstats
+end)</code></pre></div>
+    <p>Now <code class="ic">player.leaderstats.Coins.Value</code> is the player's coin count, owned by the server, shown on the leaderboard, and ready for a shop to spend. An <code class="ic">IntValue</code> holds whole numbers; there's also <code class="ic">StringValue</code>, <code class="ic">BoolValue</code>, etc. for other types.</p>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Because the server creates and changes these, a hacker editing their local copy changes nothing real. This is the golden rule paying off: own the currency on the server, and "give myself a billion coins" exploits simply don't work.</p></div>
+  </section>
+
+  <section class="lesson" id="s5-2">
+    <div class="eg">5.2</div>
+    <h3>DataStores — saving & loading (your #1 portfolio skill)</h3>
+    <p>Coins that vanish when a player leaves are useless. <b>DataStores</b> save data permanently, so it's there next time. This is the single most valuable beginner skill to nail cleanly — most newcomers fear it, so doing it right is instantly quotable work.</p>
+    <p>Two rules before any code. First: DataStore calls talk to the internet, so they can <b>fail</b> — you must wrap every call in <code class="ic">pcall</code> (the "try, and tell me if it broke" tool). Second: only store plain data — <b>strings, numbers, booleans, and plain tables</b>. Never store Instances or functions; they silently disappear.</p>
+    <div class="code"><pre><code class="lua">local DataStoreService = game:GetService("DataStoreService")
+local playerStore = DataStoreService:GetDataStore("PlayerData_v1")
+
+local DEFAULT_DATA = { coins = 0, level = 1 }
+
+-- LOAD: pcall protects us if the request fails
+local function loadData(player)
+    local key = "player_" .. player.UserId
+    local success, data = pcall(function()
+        return playerStore:GetAsync(key)
+    end)
+
+    if success then
+        return data or DEFAULT_DATA   -- new player? use defaults
+    else
+        warn("Load failed for " .. player.Name)
+        return nil   -- signal failure — do NOT silently hand out defaults
+    end
+end</code></pre></div>
+    <p><code class="ic">GetAsync(key)</code> fetches whatever was saved under that key (here, a key built from the player's unique <code class="ic">UserId</code>). New player → it returns <code class="ic">nil</code> → we hand them the defaults.</p>
+    <div class="callout c-warn"><div class="ct">⚠️ Critical mistake — handing defaults on failure</div><p>If a load <i>fails</i> (network hiccup), do <b>not</b> give the player default data — you'd be wiping their real progress with zeros, and then saving those zeros over their save. Return <code class="ic">nil</code> and either retry or kick them with "please rejoin." A failed load and a new player look similar but must be treated completely differently.</p></div>
+  </section>
+
+  <section class="lesson" id="s5-3">
+    <div class="eg">5.3</div>
+    <h3>Saving safely: SetAsync, retries, and BindToClose</h3>
+    <p>Saving mirrors loading: wrap it in <code class="ic">pcall</code>. Use <code class="ic">SetAsync</code> to overwrite with the latest data. And you <b>must</b> save when the player leaves <i>and</i> when the server shuts down — miss either and you lose data.</p>
+    <div class="code"><pre><code class="lua">local sessionData = {}   -- [userId] = their data while they're playing
+
+local function saveData(player)
+    local data = sessionData[player.UserId]
+    if not data then return end
+    pcall(function()
+        playerStore:SetAsync("player_" .. player.UserId, data)
+    end)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    local data = loadData(player)
+    if data then
+        sessionData[player.UserId] = data
+    else
+        player:Kick("Couldn't load your data. Please rejoin.")
+    end
+end)
+
+-- Save when they leave
+Players.PlayerRemoving:Connect(function(player)
+    saveData(player)
+    sessionData[player.UserId] = nil
+end)
+
+-- Save EVERYONE if the server is shutting down — easy to forget, vital
+game:BindToClose(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        saveData(player)
+    end
+end)</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 The session-data pattern</div><p>Notice we keep each player's data in a <code class="ic">sessionData</code> table <b>while they play</b>, change <i>that</i> as they earn coins, and only write to the DataStore on leave/shutdown. This is the professional pattern: <b>don't hit the DataStore on every coin</b> — Roblox limits how often you can save (and is tightening these limits in 2026). Edit the in-memory copy freely; save it occasionally.</p></div>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>For real games, add <b>retry logic</b> (try a failed save up to 3 times with a short wait between) and an <b>auto-save loop</b> every couple of minutes as a safety net. Also: Studio has a <b>Data Stores Manager</b> (<code class="ic">View → Data Stores Manager</code>) to inspect and edit saves directly while debugging.</p></div>
+  </section>
+
+  <section class="lesson" id="s5-4">
+    <div class="eg">5.4</div>
+    <h3>UpdateAsync & Ordered DataStores (leaderboards)</h3>
+    <p>Two more DataStore tools you'll want. <b><code class="ic">UpdateAsync</code></b> is the safe way to change a value <i>based on its current value</i> — like adding coins — even across multiple servers, with no race conditions. Use it instead of "read then SetAsync" whenever the new value depends on the old.</p>
+    <div class="code"><pre><code class="lua">-- Safely add coins, even if two servers touch the same data
+playerStore:UpdateAsync("player_" .. userId, function(current)
+    current = current or { coins = 0 }
+    current.coins += amount
+    return current
+end)</code></pre></div>
+    <p>For a <b>global leaderboard</b> ("top 10 richest players"), there's a special <b>OrderedDataStore</b> that keeps values sorted for you. Values must be positive whole numbers.</p>
+    <div class="code"><pre><code class="lua">local board = DataStoreService:GetOrderedDataStore("Coins_v1")
+
+board:SetAsync("player_" .. userId, math.floor(coins))   -- record a score
+
+-- read the top 10, highest first
+local pages = board:GetSortedAsync(false, 10)
+for rank, entry in ipairs(pages:GetCurrentPage()) do
+    print(rank .. ": user " .. entry.key .. " — " .. entry.value)
+end</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Regular DataStore = "remember this player's stuff." Ordered DataStore = "rank everyone." Most games use both: the normal one for each player's save, the ordered one to power a global top-scores board. Now you can build the leaderboards every competitive game shows off.</p></div>
+  </section>
+
+  <section class="lesson" id="s5-5">
+    <div class="eg">5.5</div>
+    <h3>Data versioning — future-proofing your saves</h3>
+    <p>A trap that bites everyone eventually: you ship a game, players have saves, then you want to <b>add a new field</b> or rename one. Old saves don't have it. If you're not careful, you crash on every returning player or silently corrupt data.</p>
+    <p>The fix: tag every save with a <code class="ic">_version</code> number, and migrate old shapes forward when you load them.</p>
+    <div class="code"><pre><code class="lua">local CURRENT_VERSION = 2
+
+local function migrate(data)
+    local v = data._version or 1
+    if v < 2 then
+        data.gems = 0          -- new field added in v2
+        data._version = 2
+    end
+    return data
+end
+
+-- in loadData, run it: data = migrate(data)</code></pre></div>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>For a <b>breaking</b> change (totally different shape), also bump the DataStore name itself — <code class="ic">PlayerData_v1</code> → <code class="ic">PlayerData_v2</code> — so old and new never clash. Thinking about versioning early is the difference between a smooth update and a community-wide data-loss disaster.</p></div>
+  </section>
+
+  <section class="lesson" id="s5-6">
+    <div class="eg">5.6</div>
+    <h3>Shop systems — putting it together</h3>
+    <p>A shop is your first system that combines <i>everything</i>: a UI button (client), a RemoteEvent (the bridge), server validation (security), and currency (leaderstats). It's the most-requested beginner commission, so build it once and you can sell it again and again.</p>
+    <p>The flow, end to end: player clicks Buy → LocalScript fires a remote → <b>server checks the price and their real coins</b> → server deducts and grants the item → done. The client only <i>requests</i>; the server <i>decides</i>. (Sound familiar? It's Part 3, applied.)</p>
+    <div class="code"><pre><code class="lua">-- SERVER: the shop's catalogue and the buy logic live here, trusted
+local PRICES = { Sword = 50, Shield = 75, Potion = 20 }
+
+buyEvent.OnServerEvent:Connect(function(player, itemName)
+    local price = PRICES[itemName]
+    if not price then return end            -- unknown item? ignore
+
+    local coins = player.leaderstats.Coins
+    if coins.Value < price then return end  -- can't afford? ignore
+
+    coins.Value -= price                    -- charge them
+    giveItem(player, itemName)              -- grant the item (server-side)
+end)</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>The prices live <b>on the server</b>, not the client. A hacker can't tell the server "the sword costs 0" — the server looks up its own price table and ignores anything the client claims. Every secure shop works this way. This single pattern (server holds the truth, client only asks) is the backbone of all monetized systems.</p></div>
+  </section>
+
+  <section class="lesson" id="s5-7">
+    <div class="eg">5.7</div>
+    <h3>GUI & TweenService — making it feel "paid"</h3>
+    <p>UI is what players actually see and touch. It's built from <code class="ic">ScreenGui</code> → <code class="ic">Frame</code>s → <code class="ic">TextButton</code>/<code class="ic">TextLabel</code>/<code class="ic">ImageLabel</code>. UI lives on the <b>client</b> (it's per-player), so you script it in <b>LocalScripts</b>. A button click is just an event:</p>
+    <div class="code"><pre><code class="lua">-- LocalScript inside the button
+local button = script.Parent
+
+button.MouseButton1Click:Connect(function()
+    print("Buy clicked!")
+    buyEvent:FireServer("Sword")   -- ask the server (back to 5.6)
+end)</code></pre></div>
+    <p>What makes UI feel <i>professional</i> rather than stiff is <b>animation</b>. <code class="ic">TweenService</code> smoothly slides any property from one value to another — a menu gliding in instead of snapping. This polish is often what separates a $10 job from a $50 one.</p>
+    <div class="code"><pre><code class="lua">local TweenService = game:GetService("TweenService")
+local frame = script.Parent.ShopFrame
+
+-- "over 0.3 seconds, smoothly, move to the centre"
+local info = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local goal = { Position = UDim2.new(0.5, 0, 0.5, 0) }
+
+TweenService:Create(frame, info, goal):Play()</code></pre></div>
+    <p><code class="ic">UDim2</code> positions UI using a mix of <b>scale</b> (a fraction of the screen, so it adapts to any device) and <b>offset</b> (exact pixels). <code class="ic">UDim2.new(0.5, 0, 0.5, 0)</code> means "halfway across, halfway down" — centred on any screen. Prefer scale over offset so your UI works on phones and monitors alike.</p>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Make a ScreenGui with a Frame off-screen and a button. On button click, tween the Frame into the centre. Then tween it back out. That slide is the difference between "looks made by a beginner" and "looks paid."</p></div>
+  </section>
+
+  <section class="lesson" id="s5-8">
+    <div class="eg">5.8</div>
+    <h3>Combat systems — the thing they always ask for</h3>
+    <p>This is the system you said clients always request and you couldn't build. The concept is straightforward once Part 3 is solid: <b>the client requests an attack; the server validates and applies the damage.</b> The client must never deal damage directly — that's how every combat exploit works.</p>
+    <div class="code"><pre><code class="lua">-- SERVER: the only place damage is real
+local lastSwing = {}        -- per-player cooldown tracker
+local COOLDOWN = 0.6
+local DAMAGE = 15
+local RANGE = 8
+
+swingEvent.OnServerEvent:Connect(function(player, targetModel)
+    -- 1. Cooldown: stop attack spam
+    local now = os.clock()
+    if now - (lastSwing[player] or 0) < COOLDOWN then return end
+    lastSwing[player] = now
+
+    -- 2. Validate the target is real and has a Humanoid
+    if typeof(targetModel) ~= "Instance" then return end
+    local enemyHum = targetModel:FindFirstChildWhichIsA("Humanoid")
+    if not enemyHum then return end
+
+    -- 3. Range check: are they actually close enough to hit it?
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    local enemyRoot = targetModel:FindFirstChild("HumanoidRootPart")
+    if not root or not enemyRoot then return end
+    if (root.Position - enemyRoot.Position).Magnitude > RANGE then return end
+
+    -- 4. Only now, apply damage
+    enemyHum.Health -= DAMAGE
+end)
+
+Players.PlayerRemoving:Connect(function(p) lastSwing[p] = nil end)</code></pre></div>
+    <p>Read the four guards: cooldown (no spamming attacks), target validity (no fake targets), range (can't hit someone across the map), <i>then</i> damage. The client's job was only to say "I swung at this thing." The server checked everything and decided. That's a real, secure combat core.</p>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Every guard answers a way a hacker could cheat: "attack 1000x/sec" → cooldown. "damage a player I can't see" → range. "send garbage to crash you" → type check. Good combat code is mostly <b>defensive checks</b> wrapped around one line of actual damage. This mindset is exactly Part 6.</p></div>
+    <div class="callout c-try"><div class="ct">🎮 Try it</div><p>Make a dummy with a Humanoid. Build a tool that fires <code class="ic">swingEvent:FireServer(dummy)</code> on activation, and the server code above. Test it — then try to "cheat" by firing the remote rapidly from the command bar. The cooldown should block you. If it does, your system is solid.</p></div>
+  </section>
+
+  <section class="lesson" id="s5-9">
+    <div class="eg">5.9</div>
+    <h3>Inventory systems</h3>
+    <p>An inventory is just a <b>table of what a player owns</b>, kept on the server and saved with their data. Everything you learned about tables (Part 1) and DataStores (5.2) combines here.</p>
+    <div class="code"><pre><code class="lua">-- part of the player's saved data
+sessionData[userId] = {
+    coins = 250,
+    inventory = { "Sword", "Potion", "Potion" },  -- an array of item names
+}
+
+local function addItem(player, itemName)
+    local inv = sessionData[player.UserId].inventory
+    table.insert(inv, itemName)          -- add it (5.13)
+end
+
+local function hasItem(player, itemName)
+    for _, item in ipairs(sessionData[player.UserId].inventory) do
+        if item == itemName then return true end
+    end
+    return false
+end</code></pre></div>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Notice there's nothing new here — it's tables + server ownership + saving, combined. That's the big lesson of Part 5: "advanced systems" aren't new magic, they're the <b>fundamentals assembled</b>. Once the basics are solid, every system is just a recombination. That's why rebuilding the basics was worth it.</p></div>
+    <details class="check"><summary>Check yourself: why must the shop's prices live on the server, not the client?</summary><div class="ans"><p>Because <b>the client can be hacked</b>. If prices lived on the client, a player could edit their local copy to make everything cost 0 and buy infinitely. With prices on the server, the server looks up its own trusted price table and ignores whatever the client claims — so the exploit does nothing. This is the golden rule (never trust the client) applied to money.</p></div></details>
+  </section>
+
+  <!-- ============ PART 6 ============ -->
+  <section class="part-head" id="p6">
+    <div class="pk">Part 6 · Security</div>
+    <h2>A game vs. an exploited game</h2>
+    <p class="pintro">You've met the golden rule repeatedly — here it gets its own part, because security is what separates a developer clients trust with their game from one whose game gets ruined in a week. This is a genuine selling point: "I write secure systems" is worth money.</p>
+  </section>
+
+  <section class="lesson" id="s6-1">
+    <div class="eg">6.1</div>
+    <h3>The one rule, stated plainly</h3>
+    <p><b>Never trust the client.</b> Every LocalScript runs on the player's own machine, and any player can run modified code. So treat <i>everything</i> a client sends as a potential lie. The server is the referee; the client is a player who might cheat. Decisions belong to the referee.</p>
+    <div class="callout c-key"><div class="ct">🔑 The whole of security in one sentence</div><p>If something matters — money, items, health, stats, progress — the <b>server</b> must decide it and apply it, after checking it's legitimate. The client may <i>request</i>; it may never <i>command</i>. Internalize this and you've already avoided 90% of exploits.</p></div>
+  </section>
+
+  <section class="lesson" id="s6-2">
+    <div class="eg">6.2</div>
+    <h3>Validation: type, bounds, distance</h3>
+    <p>When a remote arrives, the server should interrogate the data before acting. Three checks cover most cases:</p>
+    <ul>
+      <li><b>Type check</b> — is it even the right kind of value? A hacker sends a table where you expect a number to crash your script.</li>
+      <li><b>Bounds check</b> — is it in a sane range? Clamp it so <code class="ic">amount = math.huge</code> can't one-shot everything.</li>
+      <li><b>Distance check</b> — for world actions, is the player actually close enough? Stops "interact with something across the map."</li>
+    </ul>
+    <div class="code"><pre><code class="lua">buyEvent.OnServerEvent:Connect(function(player, quantity)
+    -- type
+    if type(quantity) ~= "number" then return end
+    -- bounds (whole number, 1 to 99)
+    quantity = math.clamp(math.floor(quantity), 1, 99)
+
+    local cost = ITEM_PRICE * quantity
+    if player.leaderstats.Coins.Value < cost then return end
+    player.leaderstats.Coins.Value -= cost
+    -- grant items...
+end)</code></pre></div>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>Make validation a reflex: the <i>first</i> lines of every <code class="ic">OnServerEvent</code> are guards that bounce bad input. Real attack input is weird on purpose — wrong types, huge numbers, impossible positions. Your guards turn those attacks into harmless no-ops.</p></div>
+  </section>
+
+  <section class="lesson" id="s6-3">
+    <div class="eg">6.3</div>
+    <h3>Cooldowns & rate limiting</h3>
+    <p>Even with valid data, a hacker can fire a remote <i>thousands of times a second</i> to spam-buy, spam-attack, or lag your server. The defense is limiting how often each player may act — a <b>cooldown</b> (minimum gap between actions) or a <b>rate limit</b> (max actions per window).</p>
+    <div class="code"><pre><code class="lua">local COOLDOWN = 0.5
+local lastUsed = {}
+
+abilityEvent.OnServerEvent:Connect(function(player)
+    local now = os.clock()
+    if now - (lastUsed[player] or 0) < COOLDOWN then return end  -- too soon? ignore
+    lastUsed[player] = now
+    useAbility(player)
+end)
+
+game.Players.PlayerRemoving:Connect(function(p) lastUsed[p] = nil end)</code></pre></div>
+    <div class="callout c-warn"><div class="ct">⚠️ Don't forget cleanup</div><p>When a player leaves, clear their entry from tracker tables (<code class="ic">lastUsed[p] = nil</code>). Otherwise those tables grow forever with ghosts of players who left — a slow <b>memory leak</b>. Cleaning up after players is a habit worth building early.</p></div>
+  </section>
+
+  <section class="lesson" id="s6-4">
+    <div class="eg">6.4</div>
+    <h3>Common exploits & their defenses</h3>
+    <p>The patterns, side by side — what the attacker does, and what stops it:</p>
+    <ul>
+      <li><b>Argument injection</b> (sends wrong types to crash you) → type-check every argument.</li>
+      <li><b>Damage/value amplification</b> (sends <code class="ic">math.huge</code>) → clamp to a sane max.</li>
+      <li><b>Remote spam</b> (fires thousands/sec) → per-player cooldown or rate limit.</li>
+      <li><b>Spoofed target</b> (claims to act on another player) → the server resolves identities from <i>its own</i> state, never the client's claim.</li>
+      <li><b>Duplicate action</b> (replays a valid buy to get two for one) → consume/check state before granting.</li>
+    </ul>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Every exploit is the client trying to make the server do something it shouldn't. Every defense is the server <b>checking before it acts</b>. Once you see security this way, you don't memorize a list — you just ask, on every server action, "how could a liar abuse this?" and add the guard. That instinct is what makes you trustworthy with someone's game.</p></div>
+  </section>
+
+  <!-- ============ PART 7 ============ -->
+  <section class="part-head" id="p7">
+    <div class="pk">Part 7 · The craft</div>
+    <h2>What separates working code from good code</h2>
+    <p class="pintro">You can now build real systems. This last part is the craft around them: writing code humans can read, catching errors, hunting bugs, and the patterns pros reach for. It's also where we talk honestly about how to keep this from fading again.</p>
+  </section>
+
+  <section class="lesson" id="s7-1">
+    <div class="eg">7.1</div>
+    <h3>Naming & readability</h3>
+    <p>Code is read far more than it's written — by clients reviewing your work, by collaborators, and by <i>future you</i> who's forgotten everything. The cheapest way to look professional is clear names.</p>
+    <ul>
+      <li>Name things for <b>what they are</b>: <code class="ic">playerCoins</code>, not <code class="ic">x</code>. <code class="ic">isJumping</code>, not <code class="ic">flag2</code>.</li>
+      <li>Functions are <b>verbs</b> (they do something): <code class="ic">giveCoins()</code>, <code class="ic">openDoor()</code>, <code class="ic">savePlayerData()</code>.</li>
+      <li>Booleans read like questions: <code class="ic">hasKey</code>, <code class="ic">isReady</code>, <code class="ic">canAttack</code>.</li>
+      <li>Use comments to explain <b>why</b>, not <i>what</i> — the code already says what; the reasoning is what gets lost.</li>
+    </ul>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>If you have to scroll up to remember what a variable holds, it's badly named. Rename it. Good names are free documentation, and on commission work, readable code is what gets you rehired.</p></div>
+  </section>
+
+  <section class="lesson" id="s7-2">
+    <div class="eg">7.2</div>
+    <h3>Error handling with pcall</h3>
+    <p>Some operations can fail no matter how careful you are — DataStore calls, anything touching the network. If you don't handle the failure, it throws an error and stops your script dead. <code class="ic">pcall</code> ("protected call") runs risky code and <b>catches</b> the failure instead of crashing.</p>
+    <div class="code"><pre><code class="lua">-- pcall returns: did-it-work? , and the result (or the error message)
+local success, result = pcall(function()
+    return someRiskyThing()
+end)
+
+if success then
+    print("Worked! Got:", result)
+else
+    warn("It failed, but we didn't crash. Error:", result)
+    -- handle gracefully: retry, use a fallback, tell the player
+end</code></pre></div>
+    <p>Remember multiple returns from Part 1.10? This is where it pays off: <code class="ic">pcall</code> hands back two things at once — the success boolean and the outcome. You check the first, then use the second.</p>
+    <div class="callout c-analogy"><div class="ct">🧠 Think of it like</div><p>A safety net under a tightrope. The risky walk (the DataStore call) might fall. <code class="ic">pcall</code> is the net — instead of hitting the ground (crashing your whole script), the fall is caught and you decide what to do next. Always net your network calls.</p></div>
+  </section>
+
+  <section class="lesson" id="s7-3">
+    <div class="eg">7.3</div>
+    <h3>Debugging — finding out why it's broken</h3>
+    <p>Your code <i>will</i> break. Constantly. That's not failure — debugging <b>is</b> programming. The skill isn't avoiding bugs; it's calmly finding them. Your tools:</p>
+    <ul>
+      <li><b><code class="ic">print()</code> everywhere</b> — the oldest, best tool. Print values at each step to see where reality stops matching what you expected. "It printed here but not here" pinpoints the break.</li>
+      <li><b>The Output window</b> — read the red errors. They tell you the <i>line number</i> and the problem. "attempt to index nil" = you used something that was actually <code class="ic">nil</code> (almost always a wrong path in the tree).</li>
+      <li><b>Breakpoints</b> — click the gutter next to a line in Studio and the game pauses there so you can inspect every variable's real value. Powerful once you're comfortable.</li>
+    </ul>
+    <div class="callout c-key"><div class="ct">🔑 The debugging mindset</div><p>When something's wrong, don't guess and flail. Ask: "what do I <i>expect</i> to be true right now?" Then print to check if it actually is. Bugs live in the gap between what you assume and what's real. Print narrows that gap until the bug has nowhere to hide. This patient habit is worth more than any syntax.</p></div>
+  </section>
+
+  <section class="lesson" id="s7-4">
+    <div class="eg">7.4</div>
+    <h3>Patterns pros reach for</h3>
+    <p>A few recurring shapes you'll see in good code. You already know the most important one — <b>debounce</b> (2.4). A couple more to recognize:</p>
+    <p><b>State machines</b> — when a thing can be in one of several states (a door is Open / Closed / Opening), track the current state in a variable and only allow valid transitions. Stops "open an already-open door" nonsense.</p>
+    <div class="code"><pre><code class="lua">local state = "Closed"
+
+local function toggleDoor()
+    if state == "Closed" then
+        state = "Opening"
+        -- play animation...
+        state = "Open"
+    elseif state == "Open" then
+        state = "Closed"
+    end
+    -- if it's mid-"Opening", we ignore the press — clean and bug-free
+end</code></pre></div>
+    <p><b>Object pooling</b> — creating and destroying objects (bullets, effects) constantly is slow. Instead, make a batch once, hide them when "destroyed," and reuse them. A performance pattern you'll want for anything spawning lots of things fast.</p>
+    <div class="callout c-key"><div class="ct">🔑 Key idea</div><p>Patterns are just named solutions to problems that come up over and over. You don't memorize them upfront — you hit the problem, learn the pattern, and recognize it next time. Knowing they <i>exist</i> means you'll search "Roblox state machine" instead of reinventing a buggy version.</p></div>
+  </section>
+
+  <section class="lesson" id="s7-5">
+    <div class="eg">7.5</div>
+    <h3>Performance basics</h3>
+    <p>You don't need to obsess over performance early — clear, correct code first. But a few habits keep your games smooth:</p>
+    <ul>
+      <li><b>Don't do heavy work every frame</b> unless you must. A loop on <code class="ic">RunService.Heartbeat</code> runs ~60×/sec — keep what's inside it tiny.</li>
+      <li><b>Cache lookups</b> — if you use <code class="ic">workspace.Map.Spawn</code> repeatedly, store it in a local once instead of walking the tree every time.</li>
+      <li><b>Disconnect events you no longer need</b> — <code class="ic">:Connect</code> returns a connection you can <code class="ic">:Disconnect()</code>. Leaving thousands of dead connections alive leaks memory.</li>
+      <li><b>Reuse, don't recreate</b> — object pooling (above) over spawning/destroying in hot paths.</li>
+    </ul>
+    <div class="callout c-do"><div class="ct">✅ Do this</div><p>Write it clearly first; optimize only what's actually slow, and use Studio's <b>MicroProfiler</b> (press <code class="ic">Ctrl+F6</code>) to find the real bottleneck instead of guessing. "Make it work, make it right, make it fast" — in that order.</p></div>
+  </section>
+
+  <section class="lesson" id="s7-6">
+    <div class="eg">7.6</div>
+    <h3>How to actually keep this — and the trap</h3>
+    <p>One honest closer, because it matters more than any function on this page.</p>
+    <p>You're capable of all of this. The thing that decides whether you can take commissions in two months isn't talent — it's whether you <b>build</b>, not just read. Reading this site front to back and nodding will feel productive and teach you almost nothing. Typing every example, breaking it, fixing it, and building the "Try it" projects is what actually rewires your brain.</p>
+    <div class="callout c-key"><div class="ct">🔑 The only study plan that works</div><p>For each section: read it once, then <b>rebuild the example from scratch in Studio without looking</b>. If you can't, you didn't learn it yet — reread and retry. Knowledge you can reproduce is yours. Knowledge you can only recognize evaporates. That's the difference between this sticking and fading like last time.</p></div>
+    <p>Then, once you've worked through the parts: build <b>one small, finished, ugly game</b> that uses coins, a shop, combat, and saving together. Finished beats perfect. A janky complete game proves more — to clients and to yourself — than a hundred half-read tutorials. That project is your portfolio and your proof.</p>
+    <div class="callout c-try"><div class="ct">🎮 Your real assignment</div><p>Don't bookmark this and feel good. Open Studio right now and do section 0.5 — make the server print your name. Fifteen minutes. The whole journey is just that, repeated. Send the first hold.</p></div>
+    <div class="done-row"></div>
+  </section>
+
+</div><!-- /inner -->
+</div><!-- /content -->
+
+<footer>
+  Ground Up · grounded in Roblox's current creator-docs &amp; production patterns · read it once, then build it · the rep is the point
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- safe storage ---------- */
+  var mem = {};
+  var store = {
+    get: function(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] || null; } },
+    set: function(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k]=v; } }
+  };
+
+  /* ---------- Luau syntax highlighter ---------- */
+  var KW = new Set("local function end if then else elseif for in do while repeat until return and or not true false nil break continue".split(" "));
+  var BI = new Set("print warn error pcall xpcall assert task wait spawn delay game workspace script Instance Enum tick os math table string typeof type pairs ipairs next setmetatable getmetatable rawget rawset tonumber tostring select unpack require Vector3 CFrame UDim2 UDim Color3 TweenInfo TweenService Players ReplicatedStorage ServerScriptService DataStoreService RunService Humanoid self".split(" "));
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function highlight(raw){
+    var re = /(--\[\[[\s\S]*?\]\]|--[^\n]*)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(\b\d+\.?\d*\b)|([A-Za-z_]\w*)/g;
+    var out="", last=0, m;
+    while((m=re.exec(raw))){
+      out += esc(raw.slice(last, m.index));
+      if(m[1]) out += '<span class="tk-com">'+esc(m[1])+'</span>';
+      else if(m[2]) out += '<span class="tk-str">'+esc(m[2])+'</span>';
+      else if(m[3]) out += '<span class="tk-num">'+esc(m[3])+'</span>';
+      else if(m[4]){
+        var w=m[4];
+        if(KW.has(w)) out += '<span class="tk-key">'+w+'</span>';
+        else if(BI.has(w)) out += '<span class="tk-bi">'+w+'</span>';
+        else {
+          var j=re.lastIndex;
+          while(j<raw.length && (raw[j]===' '||raw[j]==='\t')) j++;
+          out += (raw[j]==='(') ? '<span class="tk-fn">'+w+'</span>' : esc(w);
+        }
+      }
+      last=re.lastIndex;
+    }
+    out += esc(raw.slice(last));
+    return out;
+  }
+  document.querySelectorAll("code.lua").forEach(function(el){
+    el.innerHTML = highlight(el.textContent);
+  });
+
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll(".code").forEach(function(box){
+    var pre = box.querySelector("pre");
+    if(!pre) return;
+    var btn = document.createElement("button");
+    btn.className="copy"; btn.textContent="copy";
+    btn.addEventListener("click", function(){
+      var txt = pre.innerText;
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+        .then(function(){ btn.textContent="copied"; btn.classList.add("copied"); })
+        .catch(function(){
+          var ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta);
+          ta.select(); try{document.execCommand("copy"); btn.textContent="copied"; btn.classList.add("copied");}catch(e){}
+          document.body.removeChild(ta);
+        });
+      setTimeout(function(){ btn.textContent="copy"; btn.classList.remove("copied"); }, 1600);
+    });
+    box.appendChild(btn);
+  });
+
+  /* ---------- nav data ---------- */
+  var PARTS = [
+    { id:"p0", n:"0", title:"Before you write a line", items:[
+      ["s0-1","The workshop"],["s0-2","The Explorer & tree"],["s0-3","Services & game"],["s0-4","The 3 script types"],["s0-5","First script & Output"]]},
+    { id:"p1", n:"1", title:"The Luau language", items:[
+      ["s1-1","Variables"],["s1-2","Basic types"],["s1-3","Operators"],["s1-4","Strings"],["s1-5","Conditionals"],["s1-6","Logic: and/or/not"],["s1-7","Loops"],["s1-8","Scope"],["s1-9","Functions"],["s1-10","Multiple returns"],["s1-11","Tables: arrays"],["s1-12","Tables: dictionaries"],["s1-13","Tables: nesting"],["s1-14","Type checking"]]},
+    { id:"p2", n:"2", title:"Making the world react", items:[
+      ["s2-1","Instances & properties"],["s2-2","Events & :Connect"],["s2-3","Common events"],["s2-4","Debounce"],["s2-5","The task library"]]},
+    { id:"p3", n:"3", title:"The two worlds", items:[
+      ["s3-1","Why two sides"],["s3-2","Server authority"],["s3-3","RemoteEvents"],["s3-4","RemoteFunctions"],["s3-5","BindableEvents"]]},
+    { id:"p4", n:"4", title:"Code that doesn't rot", items:[
+      ["s4-1","ModuleScripts"],["s4-2","Abstraction & DRY"],["s4-3","Metatables"],["s4-4","OOP: classes"],["s4-5","Inheritance"],["s4-6","When to use OOP"]]},
+    { id:"p5", n:"5", title:"Real game systems", items:[
+      ["s5-1","Leaderstats"],["s5-2","DataStores"],["s5-3","Saving safely"],["s5-4","Ordered & UpdateAsync"],["s5-5","Versioning"],["s5-6","Shops"],["s5-7","GUI & Tween"],["s5-8","Combat"],["s5-9","Inventory"]]},
+    { id:"p6", n:"6", title:"Security", items:[
+      ["s6-1","The one rule"],["s6-2","Validation"],["s6-3","Cooldowns"],["s6-4","Exploits & defenses"]]},
+    { id:"p7", n:"7", title:"The craft", items:[
+      ["s7-1","Naming"],["s7-2","pcall / errors"],["s7-3","Debugging"],["s7-4","Patterns"],["s7-5","Performance"],["s7-6","Keep this — & the trap"]]}
+  ];
+
+  /* ---------- build nav ---------- */
+  var navRoot = document.getElementById("nav");
+  var linkById = {};
+  var startWrap = document.createElement("div");
+  startWrap.className="nav-part";
+  startWrap.innerHTML = '<button data-jump="start" style="color:var(--chalk)"><span><span class="pn">→</span>Start here</span></button>';
+  navRoot.appendChild(startWrap);
+
+  PARTS.forEach(function(p){
+    var part=document.createElement("div");
+    part.className="nav-part";
+    var btn=document.createElement("button");
+    btn.innerHTML='<span><span class="pn">'+p.n+'</span>'+p.title+'</span><span class="chev">▶</span>';
+    var links=document.createElement("div");
+    links.className="nav-links";
+    p.items.forEach(function(it){
+      var a=document.createElement("a");
+      a.href="#"+it[0]; a.textContent=it[1]; a.dataset.target=it[0];
+      links.appendChild(a);
+      linkById[it[0]]=a;
+    });
+    part.appendChild(btn); part.appendChild(links);
+    navRoot.appendChild(part);
+    btn.addEventListener("click", function(){ part.classList.toggle("open"); });
+    part._partId=p.id;
+  });
+  // open first part by default
+  navRoot.querySelectorAll(".nav-part")[1].classList.add("open");
+
+  /* ---------- done buttons + restore ---------- */
+  var doneSet = {};
+  try { doneSet = JSON.parse(store.get("gu_done")||"{}") || {}; } catch(e){ doneSet={}; }
+  function persist(){ store.set("gu_done", JSON.stringify(doneSet)); }
+
+  document.querySelectorAll("section.lesson").forEach(function(sec){
+    var id=sec.id; if(!id) return;
+    var row=sec.querySelector(".done-row") || (function(){ var d=document.createElement("div"); d.className="done-row"; sec.appendChild(d); return d; })();
+    var b=document.createElement("button");
+    b.className="done-btn"; b.textContent="Mark done";
+    function paint(){
+      if(doneSet[id]){ b.classList.add("is-done"); b.textContent="✓ Done"; if(linkById[id]) linkById[id].classList.add("done"); }
+      else { b.classList.remove("is-done"); b.textContent="Mark done"; if(linkById[id]) linkById[id].classList.remove("done"); }
+    }
+    b.addEventListener("click", function(){ doneSet[id]=!doneSet[id]; persist(); paint(); });
+    row.appendChild(b); paint();
+  });
+
+  /* ---------- scrollspy + progress ---------- */
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section[id]"));
+  var bar = document.getElementById("top-progress");
+  var partEls = navRoot.querySelectorAll(".nav-part");
+  function partForSection(id){
+    var pid = "p"+id.charAt(1); // s3-2 -> p3 ; start -> p. (no match, fine)
+    for(var i=0;i<partEls.length;i++){ if(partEls[i]._partId===pid) return partEls[i]; }
+    return null;
+  }
+  var ticking=false;
+  function onScroll(){
+    if(ticking) return; ticking=true;
+    requestAnimationFrame(function(){
+      var y=window.scrollY||window.pageYOffset;
+      var h=document.documentElement.scrollHeight-window.innerHeight;
+      bar.style.width=(h>0?(y/h*100):0)+"%";
+      // active section = last one whose top is above 130px
+      var current=null;
+      for(var i=0;i<sections.length;i++){
+        if(sections[i].getBoundingClientRect().top<=130) current=sections[i];
+      }
+      if(current){
+        var link=linkById[current.id];
+        Object.keys(linkById).forEach(function(k){ linkById[k].classList.remove("active"); });
+        if(link){
+          link.classList.add("active");
+          var part=partForSection(current.id);
+          if(part && !part.classList.contains("open")) part.classList.add("open");
+          // keep active link in view within sidebar
+        }
+      }
+      ticking=false;
+    });
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  onScroll();
+
+  /* ---------- mobile menu ---------- */
+  var sidebar=document.getElementById("sidebar");
+  var scrim=document.getElementById("scrim");
+  var menuBtn=document.getElementById("menuBtn");
+  function openMenu(){ sidebar.classList.add("open"); scrim.classList.add("show"); }
+  function closeMenu(){ sidebar.classList.remove("open"); scrim.classList.remove("show"); }
+  if(menuBtn) menuBtn.addEventListener("click", openMenu);
+  scrim.addEventListener("click", closeMenu);
+
+  // smooth-jump for "start here" and close menu on any nav click (mobile)
+  navRoot.addEventListener("click", function(e){
+    var jump=e.target.closest("[data-jump]");
+    if(jump){ var t=document.getElementById(jump.getAttribute("data-jump")); if(t) t.scrollIntoView({behavior:"smooth"}); }
+    if(e.target.closest("a")) { if(window.innerWidth<=900) closeMenu(); }
+  });
+
+})();
+</script>
+</body>
+</html>
